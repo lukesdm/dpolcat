@@ -13,7 +13,7 @@ These environments are based on [Pangeo](https://github.com/pangeo-data/pangeo-d
 
 
 ## Contents
-### 📄 `dpolcat.py`
+#### 📄 `dpolcat.py`
 
 The *dpolcat* module, containing the main algorithms/functions for performing polarimetric categorization.
 
@@ -34,8 +34,21 @@ A Jupyter Notebook with the initial design and prototyping of the categorizer al
 Supplementary folder for the demo notebook's flood mapping example, containing a QGIS project and associated data for accuracy assessment.
 
 
+#### 📄 `poster.pdf`
+
+A simple poster about the project presented internally.
+
+
 ## Credits
 
 Imagery: Contains modified Copernicus Sentinel data, processed by ESA and others.
 
 Flood reference: [Copernicus Emergency Mapping EMSR517](https://emergency.copernicus.eu/mapping/ems-product-component/EMSR517_AOI06_DEL_MONIT01_r1_RTP03/1)
+
+## Authors
+
+Created by Luke McQuade at [Z_GIS](https://www.plus.ac.at/geoinformatik/?lang=en), as part of the the Applied Geoinformatics MSc programme.
+
+## Acknowledgements
+
+We would like to greatly thank the members of the [EO Analytics Group](https://www.plus.ac.at/geoinformatik/research/research-areas/eo-analytics/?lang=en) and Dr. Zhara Dabiri of the [Risk, Hazard and Climate Lab](https://www.plus.ac.at/geoinformatik/research/research-areas/risk-hazard-climate/?lang=en) for their ideas and support, and Assoc. Prof. Hermann Klug and Dr. Bernhard Zagel for their instruction and continuous feedback.
