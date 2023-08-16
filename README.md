@@ -2,6 +2,8 @@
 
 *dpolcat* is a tool for the semantic categorization of dual-polarimetric synthetic aperture radar (SAR) imagery. (Specifically, Sentinel-1 with VV and VH polarizations at present.)
 
+It is inspired by Andrea Baraldi's [Satellite Image Automatic Mapper](http://siam.andreabaraldi.com/) (SIAM) concept of *spectral categories* for optical data, and the [Sen2Cube](https://www.sen2cube.at/) project.
+
 Status: Effectively at prototype/proof of concept stage, under active development.
 
 
