@@ -14,8 +14,13 @@ def scale_nice(x):
     return np.sqrt(np.log(x + 1))
 
 
+def xr_scale_nice(x):
+    """XArray, Dask-oriented, version of scaling function."""
+    return xarray.apply_ufunc(scale_nice, x, dask="parallelized", output_dtypes=[float])
+
+
 # Remember to keep this updated.
-NUM_CATEGORIES = 22
+NUM_CATEGORIES = 21
 """Total number of categories."""
 
 
@@ -62,16 +67,14 @@ def categorize(vv_scaled, vh_scaled):
     # Further mid-range categories [experimental]
     elif 0.2 <= vv < 0.4 and 0.4 <= vh < 0.6:
         i = 16
-    elif 0.2 <= vv < 0.4 and 0.6 <= vh < 0.8:
+    elif 0.2 <= vv < 0.6 and 0.6 <= vh < 0.8:
         i = 17
-    elif 0.4 <= vv < 0.6 and 0.6 <= vh < 0.8:
-        i = 18
     elif 0.4 <= vv < 0.6 and 0.2 <= vh < 0.4:
-        i = 19
+        i = 18
     elif 0.6 <= vv < 0.8 and 0.2 <= vh < 0.4:
-        i = 20
+        i = 19
     elif 0.6 <= vv < 0.8 and 0.4 <= vh < 0.6:
-        i = 21
+        i = 20
     
     # Higher values, likely to be double-bounce (buildings) or terrain effects.
     elif 0.6 <= vv < 0.8 and 0.6 <= vh < 0.8:
@@ -92,9 +95,14 @@ categorize_np = np.vectorize(categorize, otypes=[np.uint8])
 """Numpy vectorized version of the categorizer."""
 
 
-def categorize_xa(vv_scaled, vh_scaled):
-    """xarray version of the categorizer."""
-    return xarray.apply_ufunc(categorize_np, vv_scaled, vh_scaled)
+def xr_categorize(vv_scaled, vh_scaled):
+    """XArray, Dask-oriented, version of the categorizer."""
+    return xarray.apply_ufunc(
+            categorize_np,
+            vv_scaled, vh_scaled,
+            dask="parallelized",
+            output_dtypes=[np.uint8]
+        )
 
 
 color_list = np.array([
@@ -116,9 +124,8 @@ color_list = np.array([
     [255,204,0],   # 15
     [255,255,127], # 16
     [255,255,0],   # 17
-    [255,255,0], # 18 # Intentionally same as above, as these will likely be merged.
-    [0,255,0],  # 19
-    [114,73,114],  # 20
-    [0, 127, 255], # 21
+    [0,255,0],  # 18
+    [114,73,114],  # 19
+    [0, 127, 255], # 20
 ])
 """Suggested category colours, of the form [R,G,B (0 to 255)]"""
