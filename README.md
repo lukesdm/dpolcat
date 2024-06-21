@@ -58,9 +58,14 @@ A Jupyter Notebook with the initial design and prototyping of the categorizer al
 Supplementary folder for the demo notebook's flood mapping example, containing a QGIS project and associated data for accuracy assessment.
 
 
-#### 📄 `poster.pdf`
+#### 📄 `media/EARSeL2024-Slides.pdf`
 
-A simple poster about the project presented internally.
+Slides presented at the 43rd EARSeL Symposium in Manchester, UK, 17-June-2024.
+
+
+#### 📄 `media/poster.pdf`
+
+A simple poster about the project presented internally (based on an older version).
 
 
 ## Credits
