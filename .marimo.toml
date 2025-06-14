@@ -1,0 +1,3 @@
+[runtime]
+# Plots can get a bit heavy so need to set this higher than default.
+output_max_bytes = 12_000_000
