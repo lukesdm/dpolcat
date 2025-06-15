@@ -1,0 +1,5 @@
+# Marimo temp files
+__marimo__
+__pycache__
+
+data/

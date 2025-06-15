@@ -31,9 +31,9 @@ It uses the [Numba](https://numba.pydata.org/) just-in-time compiler to increase
 
 ## Environment
 
-Development and processing are supported within a [Microsoft Planetary Computer](https://planetarycomputer.microsoft.com/) Jupyter Python environment.
+Jupyter notebooks: ~~Development and processing are supported within a [Microsoft Planetary Computer](https://planetarycomputer.microsoft.com/) Jupyter Python environment.~~ Since the Hub was deprecated, this is no longer possible. These environments are based on [Pangeo](https://github.com/pangeo-data/pangeo-docker-images). This may be an option for use on other platforms.
 
-These environments are based on [Pangeo](https://github.com/pangeo-data/pangeo-docker-images). This may be an option for use on other platforms, though connection to the EO imagery archive would need to be changed accordingly.
+Marimo notebooks: Supported via Docker. Use locally with, e.g., `docker compose up` and browse to localhost:8080.
 
 
 ## Contents
@@ -52,6 +52,10 @@ A Jupyter Notebook for measuring the computational and memory performance of *dp
 #### 📄 `dpolcat_proto.ipynb`
 
 A Jupyter Notebook with the initial design and prototyping of the categorizer algorithms. It features a number of experiments.
+
+#### 📄 `hello_dpolcat.py`
+
+A basic Marimo notebook demonstrating *dpolcat*.
 
 #### 📁 `example_duisburg`
 
