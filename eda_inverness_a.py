@@ -115,18 +115,27 @@ def _(
 
 
 @app.cell
-def _(items):
-    import rich.table
+def _(items, pd):
     def summarize(item_collection):
         """Summarize catalog search results"""
-        table = rich.table.Table("id", "date", "A/D", "epsg", "bbox_proj", "bbox_lonlat", width=230)
+        data = []
         for item in item_collection:
             a_or_d = item.properties["sat:orbit_state"]
             item_epsg = item.properties["proj:code"]
             item_bbox_proj = item.properties["proj:bbox"]
             item_bbox_lonlat = item.bbox
-            table.add_row(item.id, item.properties["start_datetime"], a_or_d, str(item_epsg), str(item_bbox_proj), str(item_bbox_lonlat))
-        return table
+        
+            data.append({
+                "id": item.id,
+                "date": item.properties["start_datetime"],
+                "A/D": a_or_d,
+                "epsg": item_epsg,
+                "bbox_proj": item_bbox_proj,
+                "bbox_lonlat": item_bbox_lonlat
+            })
+    
+        df = pd.DataFrame(data)
+        return df
 
     summarize(items)
     return
