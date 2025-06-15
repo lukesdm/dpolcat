@@ -96,19 +96,19 @@ def _(dp, hv, np, xarray):
     cat_cmap = {str(i): list(dp.color_list[i]) for i in range(len(dp.color_list))}
 
     def make_legend(size=350):
-        _size = 100
-        _steps = np.linspace(-0.05, 1, _size)
-        _vv_ramp = np.vstack([_steps] * _size)
-        _vh_ramp = _vv_ramp.transpose()
-        cat_values = xarray.DataArray(dp.categorize_np(_vv_ramp, _vh_ramp), coords=[_steps, _steps], dims=["VH", "VV"])
+        n_steps = 100
+        steps = np.linspace(-0.05, 1, n_steps)
+        vv_ramp = np.vstack([steps] * n_steps)
+        vh_ramp = vv_ramp.transpose()
+        cat_values = xarray.DataArray(dp.categorize_np(vv_ramp, vh_ramp), coords=[steps, steps], dims=["VH", "VV"])
     
         labels = {}
         for i in range(1, dp.NUM_CATEGORIES):
-            _box = cat_values.where(cat_values == i,drop=True)
-            min_vv = float(_box["VV"].min())
-            max_vv = float(_box["VV"].max())
-            min_vh = float(_box["VH"].min())
-            max_vh = float(_box["VH"].max())
+            box = cat_values.where(cat_values == i,drop=True)
+            min_vv = float(box["VV"].min())
+            max_vv = float(box["VV"].max())
+            min_vh = float(box["VH"].min())
+            max_vh = float(box["VH"].max())
             center_x = (min_vv + max_vv) / 2
             center_y = (min_vh + max_vh) / 2
             labels[i] = hv.Text(center_x, center_y, str(i))
@@ -120,7 +120,7 @@ def _(dp, hv, np, xarray):
             * hv.Text(-0.02,-0.02, "0").opts(text_color="white")
         )
 
-    # make_legend(200)
+    # make_legend(300)
     return cat_cmap, make_legend
 
 
