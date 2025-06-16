@@ -57,6 +57,10 @@ A Jupyter Notebook with the initial design and prototyping of the categorizer al
 
 A basic Marimo notebook demonstrating *dpolcat*.
 
+#### 📄 `eda_inverness_[a/b].py`
+
+Exploratory analysis of SAR signals and dpolcat processing in a study area of Inverness, Scotland. Marimo notebooks adapted from some older Jupyter notebooks.
+
 #### 📁 `example_duisburg`
 
 Supplementary folder for the demo notebook's flood mapping example, containing a QGIS project and associated data for accuracy assessment.
