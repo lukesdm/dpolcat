@@ -15,4 +15,4 @@ ENV GDAL_CONFIG=/usr/bin/gdal-config
 RUN uv pip install gdal==3.6.2
 
 # Install other Python libraries
-RUN uv pip install rioxarray geopandas shapely planetary-computer stackstac dask[complete] plotly holoviews hvplot scipy numba
+RUN uv pip install rioxarray geopandas shapely planetary-computer stackstac dask[complete] plotly holoviews hvplot scipy numba geoviews
