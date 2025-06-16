@@ -1,7 +1,7 @@
 import marimo
 
 __generated_with = "0.13.15"
-app = marimo.App()
+app = marimo.App(width="medium")
 
 
 @app.cell
@@ -12,7 +12,7 @@ def _():
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""# dpolcat EDA - Inverness - Part B""")
+    mo.md(r"""# dpolcat EDA - Inverness - Part C""")
     return
 
 
@@ -182,6 +182,84 @@ def _(aoi, epsg, items, stackstac):
     return ds, n_scenes
 
 
+@app.cell
+def _(mo):
+    load_button = mo.ui.run_button(label="Click to start workflow")
+    load_button
+    return (load_button,)
+
+
+@app.cell
+def _(ds, load_button, mo):
+    mo.stop(not load_button.value)
+
+    # Load raw (linear) input data. compute() here to avoid issues due to MSPC tokens expiring.
+    vv_lin = ds.sel(band="vv").compute()
+    vh_lin = ds.sel(band="vh").compute()
+    return vh_lin, vv_lin
+
+
+@app.cell
+def _(xarray):
+    from fast_frost import frost_filter_fast, frost_filter_nanny
+
+    def frost_xr(da: xarray.DataArray, nanny=True, damping_factor=2.0, win_size=5) -> xarray.DataArray:
+        """Apply 2D (y, x) Frost filter to 3D (y, x, time) xarray DataArray; See underlying filter function for damping_factor and win_size."""
+        filtered = xarray.apply_ufunc(
+            frost_filter_nanny if nanny else frost_filter_fast,
+            da,
+            input_core_dims=[['y', 'x']],
+            output_core_dims=[['y', 'x']],
+            vectorize=True,
+            kwargs=dict(damping_factor=damping_factor, win_size=win_size),
+            dask="parallelized",
+            output_dtypes=[da.dtype],
+        )
+        return filtered
+    return (frost_xr,)
+
+
+@app.cell
+def _(frost_xr, vh_lin, vv_lin):
+    vv_filt = frost_xr(vv_lin.fillna(-1), nanny=False)
+    vh_filt = frost_xr(vh_lin.fillna(-1), nanny=False)
+    return vh_filt, vv_filt
+
+
+@app.cell
+def _(mo):
+    filter_toggle = mo.ui.radio(options=["Unfiltered", "Filtered"], value="Filtered")
+    filter_toggle
+    return (filter_toggle,)
+
+
+@app.cell
+def _(filter_toggle):
+    print(filter_toggle.value)
+    return
+
+
+@app.cell
+def _(dpolcat, filter_toggle, vh_filt, vh_lin, vv_filt, vv_lin):
+    if filter_toggle.value == "Filtered":
+        vv_sn = dpolcat.xr_scale_nice(vv_filt)
+        vh_sn = dpolcat.xr_scale_nice(vh_filt)
+    else:
+        vv_sn = dpolcat.xr_scale_nice(vv_lin)
+        vh_sn = dpolcat.xr_scale_nice(vh_lin)
+    return vh_sn, vv_sn
+
+
+@app.cell
+def _(dpolcat, vv_filt, vv_lin):
+    # A little demo of the filtering
+    _ox, _oy = 300, 0
+    _unfilt = dpolcat.xr_scale_nice(vv_lin[0][_oy:_oy+1100, _ox:_ox+1000])
+    _filt = dpolcat.xr_scale_nice(vv_filt[0][_oy:_oy+1100, _ox:_ox+1000])
+    _unfilt.hvplot(data_aspect=1.0) + _filt.hvplot(data_aspect=1.0)
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""## Perform dpolcat scaling and categorization""")
@@ -189,29 +267,12 @@ def _(mo):
 
 
 @app.cell
-def _(dpolcat, ds, epsg, xarray):
-    vv_lin = ds.sel(band="vv")
-    vh_lin = ds.sel(band="vh")
-
-    vv_sn = dpolcat.xr_scale_nice(vv_lin)
-    vh_sn = dpolcat.xr_scale_nice(vh_lin)
-
-    dpds = xarray.Dataset({"vv": vv_sn.compute().drop_vars("band"), "vh": vh_sn.compute().drop_vars("band")})
+def _(dpolcat, epsg, vh_sn, vv_sn, xarray):
+    dpds = xarray.Dataset({"vv": vv_sn.drop_vars("band"), "vh": vh_sn.drop_vars("band")})
     dpds = dpds.rio.write_crs(epsg)
-    return dpds, vh_sn, vv_sn
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""Perform polarimetric categorization with dpolcat.""")
-    return
-
-
-@app.cell
-def _(dpds, dpolcat, vh_sn, vv_sn):
     dpcats = dpolcat.xr_categorize(vv_sn, vh_sn).compute()
     dpds["dpolcat"] = dpcats
-    return (dpcats,)
+    return dpcats, dpds
 
 
 @app.cell(hide_code=True)
@@ -232,8 +293,17 @@ def _(dpolcat):
 
 @app.cell
 def _(dp_cmap, dpcats):
-    _ss1 = dpcats[0][0:100, 0:100]
+    _ss1 = dpcats[0][0:200, 0:200]
     _ss1.astype(str).hvplot(cmap=dp_cmap, data_aspect=1)
+    return
+
+
+@app.cell
+def _():
+    # Export
+    # dpds["vv"].rio.to_raster("data/inverness2-vv.tif")
+    # dpcats = dpolcat.xr_categorize(vv_sn, vh_sn).compute()
+    # dpcats.astype(np.uint8).rio.to_raster("inverness-dpolcat.tif")
     return
 
 
@@ -372,7 +442,7 @@ def _(df_subsampled_1, dp_cmap, hv):
         _hm = hv.HeatMap(_hvds).opts(cmap=dp_cmap)
         _p = _hm * hv.Labels(_hm).opts(title=f'Pol. Cats.: {sel_sample}')
         return _p
-    plot_dpolcat_timeseries('Agri-1')
+    # plot_dpolcat_timeseries('Agri-1')
     return (plot_dpolcat_timeseries,)
 
 
@@ -455,6 +525,11 @@ def _(combined):
         _cagg.hvplot.scatter(x="vv_mean", y="vv_range", by="sample_name", title="VV: Mean vs range", height=470) +
         _cagg.hvplot.scatter(x="vh_mean", y="vh_range", by="sample_name", title="VH: Mean vs range", height=470)
     ).cols(1)
+    return
+
+
+@app.cell
+def _():
     return
 
 
