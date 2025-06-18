@@ -73,9 +73,9 @@ def _(dp, vh_lin, vv_lin):
 def _(item, vh_sn, vv_sn):
     _id = item.id
 
-    (vv_sn.hvplot(cmap="gray", title=f"VV (scaled) [{_id}]") +
-     vh_sn.hvplot(cmap="gray", title=f"VH (scaled) [{_id}]")
-    ).cols(1)
+    (vv_sn.hvplot(x="x", y="y", data_aspect=1.0, cmap="gray", title=f"VV (scaled) [{_id}]") +
+     vh_sn.hvplot(x="x", y="y", data_aspect=1.0, cmap="gray", title=f"VH (scaled) [{_id}]")
+    ).cols(2)
     return
 
 
@@ -86,8 +86,16 @@ def _(mo):
 
 
 @app.cell
-def _(dp, vh_sn, vv_sn):
-    cat_result = dp.xr_categorize(vv_sn, vh_sn)
+def _(dp, mo):
+    @mo.persistent_cache()
+    def categorize(vv_sn, vh_sn):
+        return dp.xr_categorize(vv_sn, vh_sn)
+    return (categorize,)
+
+
+@app.cell
+def _(categorize, vh_sn, vv_sn):
+    cat_result = categorize(vv_sn, vh_sn)
     return (cat_result,)
 
 
@@ -101,7 +109,7 @@ def _(dp, hv, np, xarray):
         vv_ramp = np.vstack([steps] * n_steps)
         vh_ramp = vv_ramp.transpose()
         cat_values = xarray.DataArray(dp.categorize_np(vv_ramp, vh_ramp), coords=[steps, steps], dims=["VH", "VV"])
-    
+
         labels = {}
         for i in range(1, dp.NUM_CATEGORIES):
             box = cat_values.where(cat_values == i,drop=True)
@@ -112,8 +120,8 @@ def _(dp, hv, np, xarray):
             center_x = (min_vv + max_vv) / 2
             center_y = (min_vh + max_vh) / 2
             labels[i] = hv.Text(center_x, center_y, str(i))
-    
-    
+
+
         return (
             cat_values.astype("str").hvplot(cmap=cat_cmap).opts(height=size, width=size)
             * hv.NdOverlay(labels).opts(show_legend=False)
@@ -126,7 +134,7 @@ def _(dp, hv, np, xarray):
 
 @app.cell
 def _(cat_cmap, cat_result, make_legend):
-    cat_result.astype("str").hvplot(cmap=cat_cmap) + make_legend(size=250)
+    cat_result.astype("str").hvplot(x="x", y="y", data_aspect=1.0, cmap=cat_cmap, frame_width=350) + make_legend(size=250)
     return
 
 
