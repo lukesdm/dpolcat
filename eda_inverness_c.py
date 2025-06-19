@@ -12,7 +12,13 @@ def _():
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""# dpolcat EDA - Inverness - Part C""")
+    mo.md(
+        r"""
+    # dpolcat EDA - Inverness - Part C
+
+    Experiments with speckle filtering.
+    """
+    )
     return
 
 
@@ -71,13 +77,24 @@ def _():
 
 
 @app.cell
+def _(mo):
+    load_button = mo.ui.run_button(label="Click to start workflow")
+    load_button
+    return (load_button,)
+
+
+@app.cell
 def _(
+    load_button,
+    mo,
     planetary_computer,
     pystac_client,
     search_end,
     search_poly_coords,
     search_start,
 ):
+    mo.stop(not load_button.value)
+
     STAC_COLLECTION = "sentinel-1-rtc"
 
     catalog = pystac_client.Client.open(
@@ -183,16 +200,7 @@ def _(aoi, epsg, items, stackstac):
 
 
 @app.cell
-def _(mo):
-    load_button = mo.ui.run_button(label="Click to start workflow")
-    load_button
-    return (load_button,)
-
-
-@app.cell
-def _(ds, load_button, mo):
-    mo.stop(not load_button.value)
-
+def _(ds):
     # Load raw (linear) input data. compute() here to avoid issues due to MSPC tokens expiring.
     vv_lin = ds.sel(band="vv").compute()
     vh_lin = ds.sel(band="vh").compute()
@@ -525,6 +533,102 @@ def _(combined):
         _cagg.hvplot.scatter(x="vv_mean", y="vv_range", by="sample_name", title="VV: Mean vs range", height=470) +
         _cagg.hvplot.scatter(x="vh_mean", y="vh_range", by="sample_name", title="VH: Mean vs range", height=470)
     ).cols(1)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""Bivariate VV-VH distribution plotting for a given date (or over all dates, if none selected).""")
+    return
+
+
+@app.cell(hide_code=True)
+def _(df_subsampled, mo):
+    def date_from_ts(timestamp):
+        return str(timestamp)[:10]
+
+    _available_dates = list(df_subsampled.index.unique(level="time"))
+    _options = {date_from_ts(d): d for d in _available_dates}
+    _default = date_from_ts(_available_dates[0])
+    # date_dropdown = mo.ui.dropdown(options=_options, value=_default)
+    date_dropdown = mo.ui.dropdown(options=_options)
+    date_dropdown
+    return date_dropdown, date_from_ts
+
+
+@app.cell(hide_code=True)
+def _(date_dropdown, date_from_ts, df_subsampled, filter_toggle, hv):
+    _sel_date = date_dropdown.value
+    _date_label = date_from_ts(_sel_date) if _sel_date is not None else "All dates"
+
+    cvars = {'Agri-1': 'greens', 'Downtown-1': 'oranges', 'Lake-1': 'greys', 'Woodland-1': 'purples', 'Sea-1': 'blues'}
+    ps = []
+    _df = df_subsampled.loc[_sel_date] if _sel_date is not None else df_subsampled 
+    for sample_name, cmap in cvars.items():
+        d = _df.loc[_df['sample_name'] == sample_name]
+        _p = d.hvplot.bivariate(x='vv', y='vh', cmap=cmap, data_aspect=1, frame_height=450, legend=False, colorbar=False, xlim=(0, 1), ylim=(0, 1))
+        _p = _p.opts(axiswise=True)
+        ps.append(_p)
+    biv_plot = hv.Overlay(ps).opts(
+        title=f"VV-VH distribution, {_date_label}, {filter_toggle.value}")
+    return biv_plot, cvars
+
+
+@app.cell(hide_code=True)
+def _(cvars, hv):
+    # Create a simple legend plot using rectangles. Mainly generated with Claude Sonnet 4.
+
+    colormap_colors = {
+        "greens": "#2d8f2d",
+        "oranges": "#ff8c00",
+        "greys": "#696969",
+        "purples": "#8a2be2",
+        "blues": "#1e90ff",
+    }
+
+    def make_biv_legend():
+        legend_elements = []
+
+        # Create rectangles and text for each sample
+        for i, (sample_name, cmap_name) in enumerate(cvars.items()):
+            color = colormap_colors[cmap_name]
+
+            # Create a rectangle for each sample
+            rect = hv.Rectangles([(0, i - 0.2, 0.2, i + 0.2)]).opts(
+                color=color, line_color="black", line_width=1
+            )
+
+            # Add text label
+            text = hv.Text(0.3, i, sample_name).opts(
+                text_align="left", text_font_size="10pt"
+            )
+
+            legend_elements.extend([rect, text])
+
+        legend_plot = hv.Overlay(legend_elements).opts(
+            xlim=(-0.1, 2),
+            ylim=(-0.5, len(cvars) - 0.5),
+            width=150,
+            height=150,
+            title="",
+            xlabel="",
+            ylabel="",
+            xaxis=None,
+            yaxis=None,
+            show_grid=False,
+        )
+
+        return legend_plot
+
+
+    # Create the legend
+    legend = make_biv_legend()
+    return (legend,)
+
+
+@app.cell
+def _(biv_plot, legend):
+    biv_plot + legend
     return
 
 
