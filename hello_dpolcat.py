@@ -22,19 +22,43 @@ def _():
 
 @app.cell
 def _(mo):
-    mo.md(r"""## Load Sentinel-1 RTC data""")
+    mo.md(r"""## Search and Select Sentinel-1 RTC data""")
     return
 
 
 @app.cell
-def _(planetary_computer, pystac_client, stackstac):
-    # Salzburg
-    epsg_num = 32633 # UTM zone 33N
-    bbox = [13.02, 47.76, 13.09, 47.83]
+def _(mo):
+    # AoI bounding boxes
+    aois ={
+        "Salzburg": [13.02, 47.76, 13.09, 47.83],
+        "Tenerife": [-16.96, 27.92, -16.05, 28.61]
+    }
 
-    date_range = "2022-06-01/2022-06-15"
+    ui_aoi = mo.ui.dropdown(options=aois.keys(), value="Salzburg")
+    ui_date_range = mo.ui.date_range(start="2015-01-01", value=("2022-06-01", "2022-06-15"))
 
-    item_i = 1
+    mo.md(f"""
+    Area of interest: {ui_aoi} <br>
+    Search dates: {ui_date_range} <br>
+    """)
+    return aois, ui_aoi, ui_date_range
+
+
+@app.cell
+def _(aois, ui_aoi, ui_date_range):
+    # epsg_num = 32633 # UTM zone 33N
+    bbox = aois[ui_aoi.value]
+
+    _d1, _d2 = ui_date_range.value
+    # _d1.year
+    # date_range =  "2022-06-01/2022-06-15"
+    date_range = f"{_d1.year}-{_d1.month:02}-{_d1.day:02}/{_d2.year}-{_d2.month:02}-{_d2.day:02}"
+    return bbox, date_range
+
+
+@app.cell
+def _(bbox, date_range, mo, planetary_computer, pystac_client):
+    # item_i = 1
     resolution = 10
 
     catalog = pystac_client.Client.open(
@@ -46,20 +70,55 @@ def _(planetary_computer, pystac_client, stackstac):
         collections=["sentinel-1-rtc"], bbox=bbox, datetime=date_range
     )
     items = search.item_collection()
-    item = items[item_i]
-    print(f"Found {len(items)} items, selected {item.id}.")
 
-    ds = stackstac.stack(item, bounds_latlon=bbox, epsg=epsg_num, resolution=resolution)
+    print(f"Found {len(items)} items")
 
-    vv_lin = ds.sel(band="vv")[0].compute()
-    vh_lin = ds.sel(band="vh")[0].compute()
-    return item, vh_lin, vv_lin
+    _options = {items[i].id: i for i in range(len(items))}
+    ui_items = mo.ui.multiselect(_options)
+    ui_items
+    return items, resolution, ui_items
+
+
+@app.cell
+def _(items, mo, ui_items):
+    sel_items = [items[i] for i in ui_items.value]
+    mo.stop(len(sel_items) == 0, "No items selected")
+ 
+    _epsgs = set([int(item.properties["proj:code"][5:]) for item in sel_items])
+    assert len(_epsgs) == 1, "items are of different CRSs, this is not supported."
+    epsg_num = int(_epsgs.pop())
+    return epsg_num, sel_items
 
 
 @app.cell
 def _(mo):
-    mo.md(r"""## Amplitude scaling""")
+    mo.md(r"""## Processing""")
     return
+
+
+@app.cell
+def _(mo):
+    ui_speckle_filter = mo.ui.dropdown(options=["Unfiltered", "Frost"], value="Frost")
+    ui_run = mo.ui.run_button(label="⚙️ Perform processing")
+
+    mo.md(f"""
+    Speckle filter: {ui_speckle_filter} <br><br>
+    {ui_run}
+    """)
+    return (ui_run,)
+
+
+@app.cell
+def _(bbox, epsg_num, mo, resolution, sel_items, stackstac, ui_run):
+    # Load data
+
+    # Wait for button click
+    mo.stop(not ui_run.value, "Click the button to start processing.")
+
+    ds = stackstac.stack(sel_items, bounds_latlon=bbox, epsg=epsg_num, resolution=resolution)
+    vv_lin = ds.sel(band="vv").compute()
+    vh_lin = ds.sel(band="vh").compute()
+    return vh_lin, vv_lin
 
 
 @app.cell
