@@ -17,6 +17,7 @@ def _():
     import hvplot.xarray
 
     import dpolcat as dp
+    import fast_frost
     return dp, hv, mo, np, planetary_computer, pystac_client, stackstac, xarray
 
 
@@ -58,9 +59,6 @@ def _(aois, ui_aoi, ui_date_range):
 
 @app.cell
 def _(bbox, date_range, mo, planetary_computer, pystac_client):
-    # item_i = 1
-    resolution = 10
-
     catalog = pystac_client.Client.open(
         "https://planetarycomputer.microsoft.com/api/stac/v1",
         modifier=planetary_computer.sign_inplace,
@@ -76,7 +74,7 @@ def _(bbox, date_range, mo, planetary_computer, pystac_client):
     _options = {items[i].id: i for i in range(len(items))}
     ui_items = mo.ui.multiselect(_options)
     ui_items
-    return items, resolution, ui_items
+    return items, ui_items
 
 
 @app.cell
@@ -105,31 +103,63 @@ def _(mo):
     Speckle filter: {ui_speckle_filter} <br><br>
     {ui_run}
     """)
-    return (ui_run,)
+    return ui_run, ui_speckle_filter
 
 
 @app.cell
-def _(bbox, epsg_num, mo, resolution, sel_items, stackstac, ui_run):
+def _(frost_filter_fast, frost_filter_nanny, xarray):
+    def frost_xr(da: xarray.DataArray, nanny=True, damping_factor=2.0, win_size=5) -> xarray.DataArray:
+        """Apply 2D (y, x) Frost filter to 3D (y, x, time) xarray DataArray; See underlying filter function for damping_factor and win_size."""
+        filtered = xarray.apply_ufunc(
+            frost_filter_nanny if nanny else frost_filter_fast,
+            da,
+            input_core_dims=[['y', 'x']],
+            output_core_dims=[['y', 'x']],
+            vectorize=True,
+            kwargs=dict(damping_factor=damping_factor, win_size=win_size),
+            dask="parallelized",
+            output_dtypes=[da.dtype],
+        )
+        return filtered
+    return (frost_xr,)
+
+
+@app.cell
+def _(bbox, epsg_num, mo, sel_items, stackstac, ui_run):
+    mo.stop(not ui_run.value, "Click the button above to start processing.")
+
     # Load data
-
-    # Wait for button click
-    mo.stop(not ui_run.value, "Click the button to start processing.")
-
+    resolution = 10 # Native to data source
     ds = stackstac.stack(sel_items, bounds_latlon=bbox, epsg=epsg_num, resolution=resolution)
-    vv_lin = ds.sel(band="vv").compute()
-    vh_lin = ds.sel(band="vh").compute()
+    vv_lin = ds.sel(band="vv")#.compute()
+    vh_lin = ds.sel(band="vh")#.compute()
     return vh_lin, vv_lin
 
 
 @app.cell
-def _(dp, vh_lin, vv_lin):
-    vv_sn = dp.scale_nice(vv_lin)
-    vh_sn = dp.scale_nice(vh_lin)
+def _(dp, frost_xr, ui_speckle_filter, vh_lin, vv_lin):
+    # Apply speckle filtering and scaling
+    _filter = ui_speckle_filter.value
+    if _filter == "Frost":
+        vv_filt = frost_xr(vv_lin.fillna(-1), nanny=False)
+        vh_filt = frost_xr(vh_lin.fillna(-1), nanny=False)
+        vv_sn = dp.scale_nice(vv_filt)
+        vh_sn = dp.scale_nice(vh_filt)
+    else:
+        vv_sn = dp.scale_nice(vv_lin)
+        vh_sn = dp.scale_nice(vh_lin)
     return vh_sn, vv_sn
 
 
 @app.cell
+def _():
+    return
+
+
+@app.cell(disabled=True)
 def _(item, vh_sn, vv_sn):
+    # TODO: Fix this viz
+
     _id = item.id
 
     (vv_sn.hvplot(x="x", y="y", data_aspect=1.0, cmap="gray", title=f"VV (scaled) [{_id}]") +
@@ -140,7 +170,7 @@ def _(item, vh_sn, vv_sn):
 
 @app.cell
 def _(mo):
-    mo.md(r"""## Categorization""")
+    mo.md(r"""### Categorization""")
     return
 
 
