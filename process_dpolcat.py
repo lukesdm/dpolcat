@@ -311,6 +311,7 @@ def _(cat_result, dp, np, xarray):
     bin_size_px = 5 # Approx. 50m
 
     _da = cat_result
+    # da=_da
 
     _blk = (
         _da
@@ -320,6 +321,7 @@ def _(cat_result, dp, np, xarray):
             x=("block_x", "ix")
         )
     )
+    # blk = _blk
 
     def proportions(block):
         """Calculate per-class proportions for one block."""
@@ -337,6 +339,18 @@ def _(cat_result, dp, np, xarray):
         output_dtypes=[float],
     )
 
+    # Reassign geo coords.
+    _nby = _dist.sizes["block_y"]
+    _nbx = _dist.sizes["block_x"]
+    _dist = _dist.assign_coords(
+        block_y=("block_y",
+                 _da.y.values[: _nby * bin_size_px : bin_size_px] + bin_size_px / 2),
+        block_x=("block_x",
+                 _da.x.values[: _nbx * bin_size_px : bin_size_px] + bin_size_px / 2),
+    ).rename({"block_y": "y", "block_x": "x"})
+
+    # dist = _dist
+
     _sorted_cats = _dist.argsort(axis=-1)
     _sorted_proportions = _dist.isel(category=_sorted_cats)
 
@@ -352,7 +366,7 @@ def _(cat_result, dp, np, xarray):
             "topcat_4p": _sorted_proportions[:, :, :, -4],
         }
     )
-    return
+    return top_cats, xr
 
 
 @app.cell
@@ -366,18 +380,25 @@ def _(mo):
 
 
 @app.cell
-def _(cat_result, mo, np, ui_aoi, ui_export):
+def _(cat_result, mo, np, timeslice, top_cats, ui_aoi, ui_export, xr):
     mo.stop(not ui_export.value, "Click the button above to export.")
 
-    for timeslice in cat_result:
+    for _timeslice in cat_result:
         _date = str(timeslice["time"].values)[:10]
         _filename = f"data/dpolcat-{ui_aoi.value}-{_date}.tif"
-        timeslice.astype(np.uint8).rename("dpolcat").rio.to_raster(_filename)
-    return
+        _timeslice.astype(np.uint8).rename("dpolcat").rio.to_raster(_filename)
 
-
-@app.cell
-def _():
+    # Top-cats. Have to rescale proportions to 255 for uint8 conversion.
+    for _ti in range(len(top_cats["time"])):
+        _t = str(top_cats["time"][_ti].values)[:10]
+        _ds = top_cats.isel(time=_ti)
+        _ds[["topcat_1p", "topcat_2p", "topcat_3p", "topcat_4p"]] * 255
+        _dsx = xr.Dataset(_ds[["topcat_1p", "topcat_2p", "topcat_3p", "topcat_4p"]] * 255)
+        _dsx["topcat_1"] = _ds["topcat_1"]
+        _dsx["topcat_2"] = _ds["topcat_2"]
+        _dsx["topcat_3"] = _ds["topcat_3"]
+        _dsx["topcat_4"] = _ds["topcat_4"]
+        _dsx.astype(np.uint8).rio.to_raster(f"data/topcats-{_t}.tiff")
     return
 
 
