@@ -295,8 +295,73 @@ def _(cat_cmap, cat_result, make_legend):
 
 @app.cell
 def _(mo):
+    mo.md(
+        r"""
+    ## Aggregation
+
+    Aggregate into spatial bins (regular grid) and calculate the top 4 categories in each, and their proportions.
+    """
+    )
+    return
+
+
+@app.cell
+def _(cat_result, dp, np, xarray):
+    xr = xarray
+    bin_size_px = 5 # Approx. 50m
+
+    _da = cat_result
+
+    _blk = (
+        _da
+        .coarsen(y=bin_size_px, x=bin_size_px, boundary="trim")
+        .construct(
+            y=("block_y", "iy"),
+            x=("block_x", "ix")
+        )
+    )
+
+    def proportions(block):
+        """Calculate per-class proportions for one block."""
+        flat   = block.ravel()
+        counts = np.bincount(flat, minlength=dp.NUM_CATEGORIES)
+        return counts / flat.size
+
+    _dist = xr.apply_ufunc(
+        proportions,
+        _blk,
+        input_core_dims=[["iy", "ix"]],
+        output_core_dims=[["category"]],
+        vectorize=True,
+        dask="parallelized",
+        output_dtypes=[float],
+    )
+
+    _sorted_cats = _dist.argsort(axis=-1)
+    _sorted_proportions = _dist.isel(category=_sorted_cats)
+
+    top_cats = xr.Dataset(
+        {
+            "topcat_1": _sorted_cats[:, :, :, -1],
+            "topcat_1p": _sorted_proportions[:, :, :, -1],
+            "topcat_2": _sorted_cats[:, :, :, -2],
+            "topcat_2p": _sorted_proportions[:, :, :, -2],
+            "topcat_3": _sorted_cats[:, :, :, -3],
+            "topcat_3p": _sorted_proportions[:, :, :, -3],
+            "topcat_4": _sorted_cats[:, :, :, -4],
+            "topcat_4p": _sorted_proportions[:, :, :, -4],
+        }
+    )
+    return
+
+
+@app.cell
+def _(mo):
     ui_export = mo.ui.run_button(label="Export")
-    ui_export
+    mo.md(rf"""
+    ## Export results
+    {ui_export}
+    """)
     return (ui_export,)
 
 
