@@ -371,20 +371,59 @@ def _(cat_result, dp, np, xarray):
 
 @app.cell
 def _(mo):
+    mo.md(r"""## Export results""")
+    return
+
+
+@app.cell
+def _(epsg_num, gpd):
+    def make_topcats_gdf(top_cats):
+        """Create a GeoDataFrame from TopCats xr.Dataset, with geometry as points at grid cell centers."""
+        _dx = abs(top_cats["x"][1] - top_cats["x"][0]).values
+        _dy = abs(top_cats["y"][1] - top_cats["y"][0]).values
+        assert _dx > 0
+        assert _dy > 0
+    
+        _df = top_cats.to_dataframe().reset_index()
+    
+        # Cell centers
+        _points = gpd.points_from_xy(_df["x"], _df["y"], crs=epsg_num).translate(
+            xoff=_dx / 2, yoff=_dy / 2
+        )
+    
+        return gpd.GeoDataFrame(
+            _df[
+                [
+                    "topcat_1",
+                    "topcat_1p",
+                    "topcat_2",
+                    "topcat_2p",
+                    "topcat_3",
+                    "topcat_3p",
+                    "topcat_4",
+                    "topcat_4p",
+                ]
+            ],
+            geometry=_points,
+        )
+
+    # make_topcats_gdf(top_cats.isel(time=0)).to_file("data/tc.gpkg")
+    return (make_topcats_gdf,)
+
+
+@app.cell
+def _(mo):
     ui_export = mo.ui.run_button(label="Export")
-    mo.md(rf"""
-    ## Export results
-    {ui_export}
-    """)
+    ui_export
     return (ui_export,)
 
 
 @app.cell
-def _(cat_result, mo, np, timeslice, top_cats, ui_aoi, ui_export, xr):
+def _(cat_result, make_topcats_gdf, mo, np, top_cats, ui_aoi, ui_export, xr):
     mo.stop(not ui_export.value, "Click the button above to export.")
 
     for _timeslice in cat_result:
-        _date = str(timeslice["time"].values)[:10]
+        _date = str(_timeslice["time"].values)[:10]
         _filename = f"data/dpolcat-{ui_aoi.value}-{_date}.tif"
         _timeslice.astype(np.uint8).rename("dpolcat").rio.to_raster(_filename)
 
@@ -399,6 +438,7 @@ def _(cat_result, mo, np, timeslice, top_cats, ui_aoi, ui_export, xr):
         _dsx["topcat_3"] = _ds["topcat_3"]
         _dsx["topcat_4"] = _ds["topcat_4"]
         _dsx.astype(np.uint8).rio.to_raster(f"data/topcats-{_t}.tiff")
+        make_topcats_gdf(_ds).to_file(f"data/topcats-{_t}.gpkg")
     return
 
 
