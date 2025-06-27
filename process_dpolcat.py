@@ -305,22 +305,28 @@ def _(mo):
     return
 
 
+@app.function
+def as_blocks(da, bin_size_px, construct=False):
+    coarsened = da.coarsen(y=bin_size_px, x=bin_size_px, boundary="trim")
+    return (
+        coarsened.construct(y=("block_y", "iy"), x=("block_x", "ix"))
+        if construct
+        else coarsened
+    )
+
+
 @app.cell
 def _(cat_result, dp, np, xarray):
     xr = xarray
-    bin_size_px = 5 # Approx. 50m
+    # bin_size_px = 5 # Approx. 50m
+    bin_size_px = 10
 
     _da = cat_result
     # da=_da
 
-    _blk = (
-        _da
-        .coarsen(y=bin_size_px, x=bin_size_px, boundary="trim")
-        .construct(
-            y=("block_y", "iy"),
-            x=("block_x", "ix")
-        )
-    )
+
+
+    _blk = as_blocks(_da, bin_size_px=bin_size_px, construct=True)
     # blk = _blk
 
     def proportions(block):
@@ -366,7 +372,7 @@ def _(cat_result, dp, np, xarray):
             "topcat_4p": _sorted_proportions[:, :, :, -4],
         }
     )
-    return top_cats, xr
+    return bin_size_px, top_cats, xr
 
 
 @app.cell
@@ -419,13 +425,25 @@ def _(mo):
 
 
 @app.cell
-def _(cat_result, make_topcats_gdf, mo, np, top_cats, ui_aoi, ui_export, xr):
+def _(
+    cat_result,
+    make_topcats_gdf,
+    mo,
+    np,
+    top_cats,
+    ui_aoi,
+    ui_export,
+    vh_sn_agg_mean,
+    vv_sn_agg_mean,
+    xr,
+):
     mo.stop(not ui_export.value, "Click the button above to export.")
 
     for _timeslice in cat_result:
         _date = str(_timeslice["time"].values)[:10]
         _filename = f"data/dpolcat-{ui_aoi.value}-{_date}.tif"
         _timeslice.astype(np.uint8).rename("dpolcat").rio.to_raster(_filename)
+
 
     # Top-cats. Have to rescale proportions to 255 for uint8 conversion.
     for _ti in range(len(top_cats["time"])):
@@ -439,6 +457,47 @@ def _(cat_result, make_topcats_gdf, mo, np, top_cats, ui_aoi, ui_export, xr):
         _dsx["topcat_4"] = _ds["topcat_4"]
         _dsx.astype(np.uint8).rio.to_raster(f"data/topcats-{_t}.tiff")
         make_topcats_gdf(_ds).to_file(f"data/topcats-{_t}.gpkg")
+
+        vv_sn_agg_mean.isel(time=_ti).rio.to_raster(f"data/vv_sn-{_t}.tiff")
+        vh_sn_agg_mean.isel(time=_ti).rio.to_raster(f"data/vh_sn-{_t}.tiff")
+    return
+
+
+@app.cell
+def _(bin_size_px, vh_sn, vv_sn):
+    # Auxiliary corresponding band data
+    vv_sn_agg_mean = as_blocks(vv_sn, bin_size_px=bin_size_px).mean()
+    vh_sn_agg_mean = as_blocks(vh_sn, bin_size_px=bin_size_px).mean()
+    return vh_sn_agg_mean, vv_sn_agg_mean
+
+
+@app.cell
+def _(vv_sn_agg_mean):
+    diffs = {}
+
+    _da = vv_sn_agg_mean
+
+    _perms = (1,0), (2,1), (2,0)
+    for _perm in _perms:
+        _after, _before = _perm
+        _diff = _da[_after] - _da[_before]
+        diffs[_perm] = _diff
+    return (diffs,)
+
+
+@app.cell
+def _(diffs, vv_sn_agg_mean):
+    _da = vv_sn_agg_mean
+    _ts = [str(t)[:10] for t in _da["time"].values]
+    _plots = []
+    for _perm in diffs:
+        _after,_before = _perm
+        _diff = diffs[_perm]
+        _title = f"{_ts[_after]} - {_ts[_before]}"
+        _plot = _diff.rename("diff").to_dataframe()["diff"].hvplot.hist(title=_title)
+        _plots.append(_plot)
+
+    _plots
     return
 
 
