@@ -146,13 +146,15 @@ def _(mo):
 @app.cell
 def _(mo):
     ui_speckle_filter = mo.ui.dropdown(options=["Unfiltered", "Frost"], value="Frost")
+    ui_preload = mo.ui.checkbox()
     ui_run = mo.ui.run_button(label="⚙️ Perform processing")
 
     mo.md(f"""
     Speckle filter: {ui_speckle_filter} <br><br>
+    Preload data: {ui_preload} <br> (Immediately loads data into memory, rather than use lazy Dask computation. This avoids issues with MSPC re-signing when developing/experimentation at later stages.) <br><br>
     {ui_run}
     """)
-    return ui_run, ui_speckle_filter
+    return ui_preload, ui_run, ui_speckle_filter
 
 
 @app.cell
@@ -174,14 +176,20 @@ def _(ff, xarray):
 
 
 @app.cell
-def _(bbox, epsg_num, mo, sel_items, stackstac, ui_run):
+def _(bbox, epsg_num, mo, sel_items, stackstac, ui_preload, ui_run):
     mo.stop(not ui_run.value, "Click the button above to start processing.")
+
+    _preload = ui_preload.value
 
     # Load data
     resolution = 10 # Native to data source
     ds = stackstac.stack(sel_items, bounds_latlon=bbox, epsg=epsg_num, resolution=resolution)
     vv_lin = ds.sel(band="vv")#.compute()
     vh_lin = ds.sel(band="vh")#.compute()
+
+    if _preload:
+        vv_lin = vv_lin.compute()
+        vh_lin = vh_lin.compute()
     return vh_lin, vv_lin
 
 
@@ -305,22 +313,28 @@ def _(mo):
     return
 
 
+@app.function
+def as_blocks(da, bin_size_px, construct=False):
+    coarsened = da.coarsen(y=bin_size_px, x=bin_size_px, boundary="trim")
+    return (
+        coarsened.construct(y=("block_y", "iy"), x=("block_x", "ix"))
+        if construct
+        else coarsened
+    )
+
+
 @app.cell
 def _(cat_result, dp, np, xarray):
     xr = xarray
-    bin_size_px = 5 # Approx. 50m
+    # bin_size_px = 5 # Approx. 50m
+    bin_size_px = 10
 
     _da = cat_result
     # da=_da
 
-    _blk = (
-        _da
-        .coarsen(y=bin_size_px, x=bin_size_px, boundary="trim")
-        .construct(
-            y=("block_y", "iy"),
-            x=("block_x", "ix")
-        )
-    )
+
+
+    _blk = as_blocks(_da, bin_size_px=bin_size_px, construct=True)
     # blk = _blk
 
     def proportions(block):
@@ -349,7 +363,7 @@ def _(cat_result, dp, np, xarray):
                  _da.x.values[: _nbx * bin_size_px : bin_size_px] + bin_size_px / 2),
     ).rename({"block_y": "y", "block_x": "x"})
 
-    # dist = _dist
+    dist = _dist
 
     _sorted_cats = _dist.argsort(axis=-1)
     _sorted_proportions = _dist.isel(category=_sorted_cats)
@@ -366,7 +380,7 @@ def _(cat_result, dp, np, xarray):
             "topcat_4p": _sorted_proportions[:, :, :, -4],
         }
     )
-    return top_cats, xr
+    return bin_size_px, dist, top_cats, xr
 
 
 @app.cell
@@ -419,13 +433,27 @@ def _(mo):
 
 
 @app.cell
-def _(cat_result, make_topcats_gdf, mo, np, top_cats, ui_aoi, ui_export, xr):
+def _(
+    cat_result,
+    dist,
+    make_dist_gdf,
+    make_topcats_gdf,
+    mo,
+    np,
+    top_cats,
+    ui_aoi,
+    ui_export,
+    vh_sn_agg_mean,
+    vv_sn_agg_mean,
+    xr,
+):
     mo.stop(not ui_export.value, "Click the button above to export.")
 
     for _timeslice in cat_result:
         _date = str(_timeslice["time"].values)[:10]
         _filename = f"data/dpolcat-{ui_aoi.value}-{_date}.tif"
         _timeslice.astype(np.uint8).rename("dpolcat").rio.to_raster(_filename)
+
 
     # Top-cats. Have to rescale proportions to 255 for uint8 conversion.
     for _ti in range(len(top_cats["time"])):
@@ -439,6 +467,98 @@ def _(cat_result, make_topcats_gdf, mo, np, top_cats, ui_aoi, ui_export, xr):
         _dsx["topcat_4"] = _ds["topcat_4"]
         _dsx.astype(np.uint8).rio.to_raster(f"data/topcats-{_t}.tiff")
         make_topcats_gdf(_ds).to_file(f"data/topcats-{_t}.gpkg")
+
+        vv_sn_agg_mean.isel(time=_ti).rio.to_raster(f"data/vv_sn-{_t}.tiff")
+        vh_sn_agg_mean.isel(time=_ti).rio.to_raster(f"data/vh_sn-{_t}.tiff")
+
+        make_dist_gdf(dist.isel(time=_ti)).to_file(f"data/dist-{_t}.gpkg")
+    return
+
+
+@app.cell
+def _(epsg_num, gpd):
+    def get_block_points(blk_da):
+        """Calculate points at grid cell centers for a blocked DataArray."""
+        _dx = abs(blk_da["x"][1] - blk_da["x"][0]).values
+        _dy = abs(blk_da["y"][1] - blk_da["y"][0]).values
+        assert _dx > 0
+        assert _dy > 0
+    
+        _df = blk_da[:,:,0].to_dataframe().reset_index()
+    
+        # Cell centers
+        _points = gpd.points_from_xy(_df["x"], _df["y"], crs=epsg_num).translate(
+            xoff=_dx / 2, yoff=_dy / 2
+        )
+
+        return _points
+
+
+    def make_dist_gdf(da):
+        _points = get_block_points(da)
+
+        _df = (
+            da.rename("proportion")
+            .to_dataframe()["proportion"]
+            .unstack("category")
+            .add_prefix("cat_")
+        )
+
+        return gpd.GeoDataFrame(_df, geometry=_points)
+
+    # make_dist_gdf(dist)
+    return (make_dist_gdf,)
+
+
+@app.cell
+def _(bin_size_px, vh_sn, vv_sn):
+    # Auxiliary corresponding band data
+    vv_sn_agg_mean = as_blocks(vv_sn, bin_size_px=bin_size_px).mean()
+    vh_sn_agg_mean = as_blocks(vh_sn, bin_size_px=bin_size_px).mean()
+    return vh_sn_agg_mean, vv_sn_agg_mean
+
+
+@app.cell
+def _(vv_sn_agg_mean, xr):
+    _diff = (vv_sn_agg_mean[1] - vv_sn_agg_mean[0]).rename("diff")
+    _ds = xr.Dataset({"vv_sn_agg_mean": vv_sn_agg_mean[1], "diff": _diff})
+    _ds.to_dataframe().hvplot.scatter(x="vv_sn_agg_mean", y="diff", xlabel="VV_SN @ t1", ylabel="Diff. with t0").opts(marker="x")
+    return
+
+
+@app.cell
+def _(vv_sn_agg_mean):
+    vv_sn_agg_mean[0].rename("vv_sn").to_dataframe()["vv_sn"].hvplot.hist(bins=30)
+    return
+
+
+@app.cell
+def _(vv_sn_agg_mean):
+    diffs = {}
+
+    _da = vv_sn_agg_mean
+
+    _perms = (1,0), (2,1), (2,0)
+    for _perm in _perms:
+        _after, _before = _perm
+        _diff = _da[_after] - _da[_before]
+        diffs[_perm] = _diff
+    return (diffs,)
+
+
+@app.cell
+def _(diffs, vv_sn_agg_mean):
+    _da = vv_sn_agg_mean
+    _ts = [str(t)[:10] for t in _da["time"].values]
+    _plots = []
+    for _perm in diffs:
+        _after,_before = _perm
+        _diff = diffs[_perm]
+        _title = f"{_ts[_after]} - {_ts[_before]}"
+        _plot = _diff.rename("diff").to_dataframe()["diff"].hvplot.hist(title=_title)
+        _plots.append(_plot)
+
+    _plots
     return
 
 
