@@ -517,21 +517,35 @@ def _(mo):
 
 
 @app.cell
-def _(cat_cmap, dist, dp):
-    # Category distribution time series plots
-    sel_blk_y, sel_blk_x = (0,0)
+def _():
+    # Selected point
+    # sel_x, sel_y = 356662.34,5297162.47
+    sel_x, sel_y = 354369.2,5297271.7 # Buildings 1
+    # sel_x, sel_y = 354065.6,5295867.6
+    # sel_x, sel_y = 353016.7,5294576.3 # Salzachsee
+    # sel_x, sel_y = 0, 0
+    return sel_x, sel_y
+
+
+@app.cell
+def _(cat_cmap, dist, dp, sel_x, sel_y):
+    _blk = dist.sel(x=sel_x, y=sel_y, method="nearest")
+    _blk_x, _blk_y = _blk["x"].values, _blk["y"].values
+    _ix = dist.get_index("x").get_loc(float(_blk_x))
+    _iy = dist.get_index("y").get_loc(float(_blk_y))
+
 
     bar_cmap = {f"cat_{i}": cat_cmap[str(i)] for i in range(dp.NUM_CATEGORIES) }
 
     # Category proportions over time for the given block.
     # Excludes categories with no entries.
-    _df = dist[:,sel_blk_y, sel_blk_x].rename("proportion").to_dataframe()["proportion"]
+    _df = dist[:,_iy, _ix].rename("proportion").to_dataframe()["proportion"]
     _df2 = _df.unstack("category").add_prefix("cat_")
     _empty = _df2.eq(0).all()
     _valid_cols = _empty[~_empty].index
     _df3 = _df2[_valid_cols]
 
-    _bars = _df3.hvplot.bar(stacked=True, cmap=bar_cmap, title=f"Block ix={sel_blk_x}, iy={sel_blk_y}")
+    _bars = _df3.hvplot.bar(stacked=True, cmap=bar_cmap, title=f"Category distribution, block x={_blk_x}, y={_blk_y}, ix={_ix}, iy={_iy}")
 
     # Line colors are a bit trickier as cmap doesn't work.
     _line_colors = [f"#{bar_cmap[k][0]:02X}{bar_cmap[k][1]:02X}{bar_cmap[k][2]:02X}" for k in _valid_cols]
