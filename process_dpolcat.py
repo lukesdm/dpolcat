@@ -511,6 +511,43 @@ def _(epsg_num, gpd):
 
 
 @app.cell
+def _(mo):
+    mo.md(r"""## Category distribution time series plots""")
+    return
+
+
+@app.cell
+def _(cat_cmap, dist, dp):
+    # Category distribution time series plots
+    sel_blk_y, sel_blk_x = (0,0)
+
+    bar_cmap = {f"cat_{i}": cat_cmap[str(i)] for i in range(dp.NUM_CATEGORIES) }
+
+    # Category proportions over time for the given block.
+    # Excludes categories with no entries.
+    _df = dist[:,sel_blk_y, sel_blk_x].rename("proportion").to_dataframe()["proportion"]
+    _df2 = _df.unstack("category").add_prefix("cat_")
+    _empty = _df2.eq(0).all()
+    _valid_cols = _empty[~_empty].index
+    _df3 = _df2[_valid_cols]
+
+    _bars = _df3.hvplot.bar(stacked=True, cmap=bar_cmap, title=f"Block ix={sel_blk_x}, iy={sel_blk_y}")
+
+    # Line colors are a bit trickier as cmap doesn't work.
+    _line_colors = [f"#{bar_cmap[k][0]:02X}{bar_cmap[k][1]:02X}{bar_cmap[k][2]:02X}" for k in _valid_cols]
+    _lines = _df3.hvplot.line(color=_line_colors)
+
+    (_bars + _lines).cols(1)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""## Difference comparisons""")
+    return
+
+
+@app.cell
 def _(bin_size_px, vh_sn, vv_sn):
     # Auxiliary corresponding band data
     vv_sn_agg_mean = as_blocks(vv_sn, bin_size_px=bin_size_px).mean()
