@@ -8,6 +8,8 @@ app = marimo.App(width="medium")
 def _():
     import marimo as mo
 
+    from typing import Literal, get_args
+
     import geopandas as gpd
     import numpy as np
     import pandas as pd
@@ -26,8 +28,10 @@ def _():
 
     hv.extension("bokeh")
     return (
+        Literal,
         dp,
         ff,
+        get_args,
         gpd,
         hv,
         mo,
@@ -48,34 +52,64 @@ def _(mo):
 
 
 @app.cell
-def _(mo):
+def _(Literal, get_args, mo):
     # AoI bounding boxes
-    aois ={
+    aois = {
         "Salzburg": [13.02, 47.76, 13.09, 47.83],
-        "Tenerife": [-16.96, 27.92, -16.05, 28.61]
+        "Tenerife": [-16.96, 27.92, -16.05, 28.61],
+    }
+
+    # If defined for AoI, containing scenes should have similar footprints
+    footprints = {
+        "Salzburg": [
+            [11.74718, 46.80103],
+            [11.33524, 48.16861],
+            [14.50964, 48.56274],
+            [14.81829, 47.15242],
+            [11.74718, 46.80103],
+        ],
+        # TODO: Tenerife
     }
 
     ui_aoi = mo.ui.dropdown(options=aois.keys(), value="Salzburg")
-    ui_date_range = mo.ui.date_range(start="2015-01-01", value=("2022-06-01", "2022-06-15"))
+    ui_date_range = mo.ui.date_range(
+        start="2015-01-01", value=("2022-06-01", "2022-06-15")
+    )
+    SearchOpOptions = Literal["Intersects AoI", "Matches footprint"]
+    ui_search_op = mo.ui.radio(options=get_args(SearchOpOptions), label="Search type:", value="Matches footprint")
 
     mo.md(f"""
     Area of interest: {ui_aoi} <br>
     Search dates: {ui_date_range} <br>
+    {ui_search_op}
     """)
-    return aois, ui_aoi, ui_date_range
+    return aois, footprints, ui_aoi, ui_date_range, ui_search_op
 
 
 @app.cell
-def _(aois, ui_aoi, ui_date_range):
-    bbox = aois[ui_aoi.value]
+def _(aois, ui_aoi, ui_date_range, ui_search_op):
+    aoi_name = ui_aoi.value
+    bbox = aois[aoi_name]
 
     _d1, _d2 = ui_date_range.value
     date_range = f"{_d1.year}-{_d1.month:02}-{_d1.day:02}/{_d2.year}-{_d2.month:02}-{_d2.day:02}"
-    return bbox, date_range
+
+    search_op_type = ui_search_op.value
+    return aoi_name, bbox, date_range, search_op_type
 
 
 @app.cell
-def _(bbox, date_range, mo, pd, planetary_computer, pystac_client):
+def _(
+    aoi_name,
+    bbox,
+    date_range,
+    footprints,
+    mo,
+    pd,
+    planetary_computer,
+    pystac_client,
+    search_op_type,
+):
     def summarize(item_collection):
         """Summarize catalog search results"""
         data = []
@@ -85,26 +119,49 @@ def _(bbox, date_range, mo, pd, planetary_computer, pystac_client):
             item_bbox_proj = item.properties["proj:bbox"]
             item_bbox_lonlat = item.bbox
 
-            data.append({
-                "id": item.id,
-                "date": item.properties["start_datetime"],
-                "A/D": a_or_d,
-                "epsg": item_epsg,
-                "bbox_proj": item_bbox_proj,
-                "bbox_lonlat": item_bbox_lonlat
-            })
+            data.append(
+                {
+                    "id": item.id,
+                    "date": item.properties["start_datetime"],
+                    "A/D": a_or_d,
+                    "epsg": item_epsg,
+                    "bbox_proj": item_bbox_proj,
+                    "bbox_lonlat": item_bbox_lonlat,
+                }
+            )
 
         df = pd.DataFrame(data)
         return df
+
+
+    STAC_COLLECTION = "sentinel-1-rtc"
 
     catalog = pystac_client.Client.open(
         "https://planetarycomputer.microsoft.com/api/stac/v1",
         modifier=planetary_computer.sign_inplace,
     )
 
-    search = catalog.search(
-        collections=["sentinel-1-rtc"], bbox=bbox, datetime=date_range
-    )
+    if search_op_type == "Intersects AoI":
+        search = catalog.search(
+            collections=[STAC_COLLECTION], bbox=bbox, datetime=date_range
+        )
+    elif search_op_type == "Matches footprint":
+        _search_poly_coords = footprints[aoi_name]
+        cql2_contains = {
+            "op": "s_contains",
+            "args": [
+                {"property": "geometry"},
+                {"type": "Polygon", "coordinates": [_search_poly_coords]},
+            ],
+        }
+        search = catalog.search(
+            collections=[STAC_COLLECTION],
+            filter=cql2_contains,
+            datetime=date_range,
+        )
+    else:
+        raise ValueError(f"Invalid search operation type: {search_op_type}")
+
     items = search.item_collection()
     print(f"Found {len(items)} items")
     _df = summarize(items)
@@ -121,6 +178,17 @@ def _(items, mo, ui_items):
 
     _epsgs = set([int(item.properties["proj:code"][5:]) for item in sel_items])
     assert len(_epsgs) == 1, "items are of different CRSs, this is not supported."
+
+    _all_a_or_d = any(
+        [
+            all(item.properties["sat:orbit_state"] == s for item in sel_items)
+            for s in ["ascending", "descending"]
+        ]
+    )
+    assert _all_a_or_d, (
+        "Selected items contain a mix of ascending and descending orbits. This will likely give bad results."
+    )
+
     epsg_num = int(_epsgs.pop())
     return epsg_num, sel_items
 
@@ -129,11 +197,17 @@ def _(items, mo, ui_items):
 def _(bbox, gpd, sel_items, sg):
     _aoi = gpd.GeoDataFrame({"geometry": [sg.box(bbox[0], bbox[1], bbox[2], bbox[3])]}, crs=4236)
     _footprints = gpd.GeoDataFrame({"geometry": [sg.shape(item.geometry) for item in sel_items]},crs=4326)
-
+    #footprints = _footprints
     (
         _aoi.hvplot(geo=True, tiles=True, alpha=0.2, color="blue")
         * _footprints.hvplot(geo=True, alpha=0.2, color="orange")
     )
+    return
+
+
+@app.cell
+def _():
+    #footprints.to_file("data/footprints.gpkg")
     return
 
 
@@ -326,8 +400,8 @@ def as_blocks(da, bin_size_px, construct=False):
 @app.cell
 def _(cat_result, dp, np, xarray):
     xr = xarray
-    # bin_size_px = 5 # Approx. 50m
-    bin_size_px = 10
+    # bin_size_px = 5 # 50m*50m
+    bin_size_px = 10 # 100m*100m
 
     _da = cat_result
     # da=_da
@@ -520,11 +594,18 @@ def _(mo):
 def _():
     # Selected point
     # sel_x, sel_y = 356662.34,5297162.47
-    sel_x, sel_y = 354369.2,5297271.7 # Buildings 1
+    # sel_x, sel_y = 354369.2,5297271.7 # Buildings 1
+    # sel_x, sel_y = 354066.8,5299071.9
     # sel_x, sel_y = 354065.6,5295867.6
     # sel_x, sel_y = 353016.7,5294576.3 # Salzachsee
+    sel_x, sel_y = 354429.1,5294722.0 # Freisaal field
     # sel_x, sel_y = 0, 0
     return sel_x, sel_y
+
+
+@app.cell
+def _():
+    return
 
 
 @app.cell
