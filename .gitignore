@@ -3,3 +3,9 @@ __marimo__
 __pycache__
 
 data/
+# pixi environments
+.pixi/*
+!.pixi/config.toml
+
+# Build
+dist/

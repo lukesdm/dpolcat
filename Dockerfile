@@ -1,18 +1,18 @@
-FROM ghcr.io/marimo-team/marimo:0.13.15
+FROM ghcr.io/prefix-dev/pixi:0.84.1-noble
 
-# Install GDAL and Python.
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    gdal-bin \
-    libgdal-dev \
-    python3-dev
+# Prevent environment (dependencies) folder being created in app folder, which kills perf on WSL.
+RUN pixi config set --global detached-environments true
 
-COPY --from=ghcr.io/astral-sh/uv:0.4.20 /uv /bin/uv
-ENV UV_SYSTEM_PYTHON=1
-ENV GDAL_CONFIG=/usr/bin/gdal-config
+# Install dependencies
+WORKDIR /app
+COPY pyproject.toml pixi.lock* README.md LICENSE ./
+COPY src/dpolcat/__init__.py ./src/dpolcat/__init__.py
+RUN pixi install
 
-# GDAL Python bindings - has to match GDAL version installed by apt-get
-RUN uv pip install gdal==3.6.2
+# No need to copy anything else - it will be volume mounted.
+# COPY . .
 
-# Install other Python libraries
-RUN uv pip install rioxarray geopandas shapely planetary-computer stackstac dask[complete] plotly holoviews hvplot scipy numba geoviews
+ENV MARIMO_SKIP_UPDATE_CHECK=1
+
+EXPOSE 8080
+CMD ["pixi", "run", "marimo", "edit", "--host", "0.0.0.0", "--port", "8080", "--no-token"]
