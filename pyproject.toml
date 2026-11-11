@@ -1,0 +1,98 @@
+[project]
+name = "dpolcat"
+version = "0.2.0.dev5"
+authors = [{ name = "Luke McQuade", email = "2824165+lukesdm@users.noreply.github.com" }]
+description = "Semantic categorization of dual-polarimetric synthetic aperture radar (SAR) imagery."
+readme="README.md"
+license = "Apache-2.0"
+license-files=["LICENSE"]
+
+requires-python = ">=3.13"
+dependencies = [
+    # COULDDO: try relax some versions
+    "xarray>=2026.9.0",
+    "pandas>=3.0.6",
+    "geopandas>=1.2.0",
+    "planetary-computer>=1.0.0",
+    "marimo>=0.25.1",
+    "pystac-client>=0.9.0",
+    "numba>=0.68.0",
+    "odc-stac>=0.5.3",
+    "rioxarray>=0.23.0",
+    "zarr",
+    
+    # SHOULDDO: make optional
+    "holoviews",
+    "hvplot",
+    "bokeh<3.10.0", # 3.10.x has a marimo incompatibility
+    "geoviews"
+]
+
+[project.optional-dependencies]
+gdal = ["gdal>=3.13.3"]
+
+[project.urls]
+Homepage = "https://github.com/lukesdm/dpolcat"
+Issues = "https://github.com/lukesdm/dpolcat/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pixi.workspace]
+name = "dpolcat"
+preview = ["pixi-build"]
+channels = ["conda-forge"]
+platforms = ["win-64", "linux-64"]
+
+[tool.pixi.tasks]
+
+[tool.pixi.dependencies]
+dpolcat = { path = "." }
+holoviews = ">=1.23.2,<2"
+hvplot = ">=0.12.2,<0.13"
+xhistogram = ">=0.3.2,<0.4"
+# geoviews = ">=1.15.1,<2"
+geoviews = "==1.15.0" # SHOULDDO: Update this when possible
+cartopy = "<0.26" # prevent geoviews bug/incompatibility in current conda release # SHOULDDO: Remove this when possible
+bokeh = "<3.10.0" # not currently supported by marimo # SHOULDDO: Remove this when possible
+
+[tool.pixi.feature.release.dependencies]
+python-build = "*"
+twine = "*"
+
+[tool.pixi.feature.release.tasks]
+build-wheel = "python -m build --outdir dist"
+# Publish wheel-only (no sdist)
+publish-pypi = { cmd = "twine upload dist/*.whl", depends-on = ["build-wheel"] }
+build-conda = "pixi publish --target-dir dist"
+
+[tool.pixi.environments]
+release = { features = ["release"], solve-group = "default" }
+
+[tool.pixi.package.build.backend]
+name = "pixi-build-python"
+version = "0.*"
+
+[tool.pixi.package.host-dependencies]
+hatchling = "*"
+
+[tool.pixi.package.run-dependencies]
+python = ">=3.13"
+xarray = ">=2026.9.0"
+pandas = ">=3.0.6"
+geopandas = ">=1.2.0"
+marimo = ">=0.25.1"
+planetary-computer = ">=1.0.0"
+pystac-client = ">=0.9.0"
+numba = ">=0.68.0"
+odc-stac = ">=0.5.3"
+rioxarray = ">=0.23.0"
+gdal = ">=3.13.3"
+
+[tool.marimo.package_management]
+manager = "pixi"
+
+[tool.marimo.runtime]
+auto_reload = "lazy"
+output_max_bytes = 100000000

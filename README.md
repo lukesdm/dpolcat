@@ -2,9 +2,11 @@
 
 *dpolcat* is a tool for the semantic categorization of dual-polarimetric synthetic aperture radar (SAR) imagery. (Specifically, Sentinel-1 with VV and VH polarizations at present.)
 
-It is inspired by Dr. Andrea Baraldi's [Satellite Image Automatic Mapper™](http://siam.andreabaraldi.com/) (SIAM™) concept of *spectral categories* for optical data, and the [Sen2Cube](https://www.sen2cube.at/) project.
+It is inspired by Dr. Andrea Baraldi's [Satellite Image Automatic Mapper™](http://siam.andreabaraldi.com/) (SIAM™) concept of *spectral categories* for optical data, the [Sen2Cube](https://www.sen2cube.at/) project, and Luuk van der Meer's [Semantique](https://github.com/zgis/semantique).
 
-Status: Effectively at prototype/proof of concept stage, under active development.
+Status: This is a research project with occasional updates.
+
+There's a pre-release package on pypi with the core functionality: https://pypi.org/project/dpolcat/
 
 ## Overview
 
@@ -23,68 +25,174 @@ We can then make inferences based on how these categories are distributed in an 
 
 [*]: [Copernicus EMSR517](https://emergency.copernicus.eu/mapping/ems-product-component/EMSR517_AOI06_DEL_MONIT01_r1_RTP03/1)
 
-This is implemented in a Python module that performs a custom scaling, then categorization using a decision-tree algorithm.
 
-![Block diagram](media/block-diagram.png).
+This is implemented in a Python library that performs scaling, speckle-filtering, and then categorization, using a decision-tree algorithm.
+
+![Block diagram](media/block-diagram.png)
 
 It uses the [Numba](https://numba.pydata.org/) just-in-time compiler to increase performance, and [Dask](https://www.dask.org) for parallelization.
 
+
+### Colour palette
+
+A note on the colour palette. The choices **loosely** follow these rules:
+- Natural phenomena map to pale colours.
+- Man-made phenonema map to bright colours.  
+
+Sometimes the colours resemble certain land cover types. This may not be coincidence. BUT, there's no one-to-one mapping of land cover type to category/colour.
+
+
+### Semantic API
+
+For modelling in a more semantic manner, i.e., using textual rather than category indices, a few helper classes have been provided. These can be accessed through `dpolcat.modelling`, and their usage is shown in the demo notebooks.
+
+![Semantic API guide](media/semantic-api.png)
+
+
+### Category numbering
+
+The numbering/indices of the categories has a property with an interesting side effect: they loosely increase in order of  magnitude of the VV+VH vector they represent. This means modelling and visualization can sometimes use the category index alone as an input. For example, below is another way of visualizing the pre-and post-flood scenes from earlier.
+
+![Flood example spectral](media/demo-index.png)
+
+
 ## Environment
 
-Jupyter notebooks: ~~Development and processing are supported within a [Microsoft Planetary Computer](https://planetarycomputer.microsoft.com/) Jupyter Python environment.~~ Since the Hub was deprecated, this is no longer possible. These environments are based on [Pangeo](https://github.com/pangeo-data/pangeo-docker-images). This may be an option for use on other platforms.
-
-Marimo notebooks: Supported via Docker. Use locally with, e.g., `docker compose up` and browse to localhost:8080.
+Launch marimo notebooks via either:
+- Pixi - run `pixi run marimo edit` (a browser opens automatically).
+- Docker - use locally with, e.g., `docker compose up` and browse to localhost:8080. ⚠️ This opens a notebook server without authentication, make sure to be behind a properly configured firewall.
 
 
 ## Contents
-#### 📄 `dpolcat.py`
 
-The *dpolcat* module, containing the main algorithms/functions for performing polarimetric categorization.
+Some of the main files and folders.
 
-#### 📄 `dpolcat_demo.ipynb`
+    '🟢' indicates the file can be run as a marimo notebook.
 
-A Jupyter Notebook demonstrating the use of *dpolcat*, including a simple end-to-end flood mapping example.
+### 📁 `src/dpolcat`
 
-#### 📄 `dpolcat_perf.ipynb`
+The main components of the *dpolcat* package.
 
-A Jupyter Notebook for measuring the computational and memory performance of *dpolcat* processing.
+#### 📄 `core.py`
 
-#### 📄 `dpolcat_proto.ipynb`
+The heart of *dpolcat*, containing the algorithms/functions for performing polarimetric categorization.
 
-A Jupyter Notebook with the initial design and prototyping of the categorizer algorithms. It features a number of experiments.
 
-#### 📄 `hello_dpolcat.py`
+#### 📄🟢 `processor.py`
 
-A basic Marimo notebook demonstrating *dpolcat*.
+A parameterized notebook containing a batch processing workflow.
 
-#### 📄 `eda_inverness_[a/b].py`
 
-Exploratory analysis of SAR signals and dpolcat processing in a study area of Inverness, Scotland. Marimo notebooks adapted from some older Jupyter notebooks.
+#### 📄 `modelling.py`
 
-#### 📁 `example_duisburg`
+Submodule `dpolcat.modelling` which contains helpers for creating semantic models with categories.
 
-Supplementary folder for the demo notebook's flood mapping example, containing a QGIS project and associated data for accuracy assessment.
+
+#### 📄🟢 `utils.py`
+
+Contains reusable utility/helper functions etc. for working with *dpolcat* in various settings.
+
+
+#### 📄 `pc_rio_driver.py`
+
+A utility class for [odc-stac](https://odc-stac.readthedocs.io/en/latest/intro.html) which takes care of Planetary Computer asset signing.
+
+
+#### 📄 `fast_frost.py`
+
+A numba-based implementation of a Frost speckle filter.
+
+
+### 📁 `demo`
+
+#### 📄🟢 `demo_01_intro.py`
+
+An introduction to *dpolcat*.
+
+
+#### 📄🟢 `demo_02_flood.py`
+
+Demonstration of a simple flood modelling and mapping workflow using *dpolcat*.
+
+
+#### 📄🟢 `demo_03_batch_processing.py`
+
+A batch processing/datacube-writing demonstration.
+
+
+#### 📄🟢 `demo_04_urban.py`
+
+Demonstration of some simple urban change modelling and mapping.  
+
+### 📁 `gis`
+
+
+#### 📁 `duisburg`
+
+Supplementary folder for the flood mapping demo notebook, containing a QGIS project and associated data for accuracy assessment.
+
+
+#### 📁 `graz`
+
+Supplementary folder inc. QGIS project for the Graz-related demos.
+
+### 📁 `experiments`
+
+
+#### 📄🟢 `inverness_*.py`
+
+Exploratory analysis of SAR signals and dpolcat processing in a study area of Inverness, Scotland.
+
+
+### 📁 `scripts`
+
+
+#### 📄🟢 `graz_prep.py`
+
+Builds the full-size datacube for the Graz urban change demo.
+
+
+### 📁 `archive`
+
+Some things based on earlier versions, which may be useful for additional context.
+
+
+
+
+
 
 
 #### 📄 `media/EARSeL2024-Slides.pdf`
 
-Slides presented at the 43rd EARSeL Symposium in Manchester, UK, 17-June-2024.
+Slides presented at the 43rd EARSeL Symposium in Manchester, UK, 17-June-2024. (Based on an older version.)
 
 
 #### 📄 `media/poster.pdf`
 
-A simple poster about the project presented internally (based on an older version).
+A simple poster about the project presented internally (based on an even older version).
 
+
+## Contributing
+
+Please discuss problems or suggestions via an issue. Pull requests are restricted to contributors only, for now.
 
 ## Credits
 
-Imagery: Contains modified Copernicus Sentinel data, processed by ESA and others.
+Sentinel imagery: Contains modified Copernicus Sentinel data, processed by ESA and others.
 
 Flood reference: [Copernicus Emergency Mapping EMSR517](https://emergency.copernicus.eu/mapping/ems-product-component/EMSR517_AOI06_DEL_MONIT01_r1_RTP03/1)
 
+Graz aerial imagery: [Land Steiermark](https://www.landesentwicklung.steiermark.at/cms/beitrag/12866797/142970647/)
+
+
 ## Authors
 
-Created by Luke McQuade at [Z_GIS](https://www.plus.ac.at/geoinformatik/?lang=en), as part of the the Applied Geoinformatics MSc programme.
+Created by Luke McQuade at [Z_GIS](https://www.plus.ac.at/geoinformatik/?lang=en), originally as part of the the Applied Geoinformatics MSc programme.
+
+
+## AI usage policy
+
+Use sparingly (the authors will read all lines of code). Do not use for human-readable text, e.g., documentation, code comments, PR descriptions, commit message. Where a model is the main author of a function or more, add a comment naming the model and version.
 
 ## Acknowledgements
 
