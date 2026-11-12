@@ -41,6 +41,11 @@ A note on the colour palette. The choices **loosely** follow these rules:
 
 Sometimes the colours resemble certain land cover types. This may not be coincidence. BUT, there's no one-to-one mapping of land cover type to category/colour.
 
+### Speckle filtering
+
+A speckle filter (per Frost et al., 1982) is provided as an optional (but recommended) pre-processing step.
+
+![Speckle filtering demonstration](media/speckle-filter-demo.png)
 
 ### Semantic API
 
@@ -54,6 +59,13 @@ For modelling in a more semantic manner, i.e., using textual rather than categor
 The numbering/indices of the categories has a property with an interesting side effect: they loosely increase in order of  magnitude of the VV+VH vector they represent. This means modelling and visualization can sometimes use the category index alone as an input. For example, below is another way of visualizing the pre-and post-flood scenes from earlier.
 
 ![Flood example spectral](media/demo-index.png)
+
+
+### Related work
+
+This work has a number of things in common with the polarimetric decomposition and 'scattering behaviour zones' described by Cloude and Pottier, 1997. The key differences are that *dpolcat* works on dual-polarimetric, rather than fully-polarimetric acquisitions, and it doesn't consider the phase signal components. As it doesn't require a decomposition step, processing is significantly faster.
+
+For further background, see the related [master thesis](https://eplus.uni-salzburg.at/Abschlussarbeiten/content/titleinfo/11624947).
 
 
 ## Environment
@@ -124,6 +136,9 @@ A batch processing/datacube-writing demonstration.
 
 Demonstration of some simple urban change modelling and mapping.  
 
+![urban demo](media/urban-demo.png)
+
+
 ### 📁 `gis`
 
 
@@ -157,11 +172,6 @@ Builds the full-size datacube for the Graz urban change demo.
 Some things based on earlier versions, which may be useful for additional context.
 
 
-
-
-
-
-
 #### 📄 `media/EARSeL2024-Slides.pdf`
 
 Slides presented at the 43rd EARSeL Symposium in Manchester, UK, 17-June-2024. (Based on an older version.)
@@ -192,23 +202,24 @@ Created by Luke McQuade at [Z_GIS](https://www.plus.ac.at/geoinformatik/?lang=en
 
 ## AI usage policy
 
-Use sparingly (the authors will read all lines of code). Do not use for human-readable text, e.g., documentation, code comments, PR descriptions, commit message. Where a model is the main author of a function or more, add a comment naming the model and version.
+Use sparingly (the author(s) will read all lines of code). Do not use for human-readable text, e.g., documentation, code comments, PR descriptions, commit message. Where a model is the main author of a function or more, add a comment naming the model and version.
 
 ## Acknowledgements
 
-We would like to greatly thank the members of the [EO Analytics Group](https://www.plus.ac.at/geoinformatik/research/research-areas/eo-analytics/?lang=en) and Dr. Zhara Dabiri of the [Risk, Hazard and Climate Lab](https://www.plus.ac.at/geoinformatik/research/research-areas/risk-hazard-climate/?lang=en) for their ideas and support, and Assoc. Prof. Hermann Klug and Dr. Bernhard Zagel for their instruction and continuous feedback.
+I would like to greatly thank the members of the [EO Analytics Group](https://www.plus.ac.at/geoinformatik/research/research-areas/eo-analytics/?lang=en) and Dr. Zhara Dabiri of the [Risk, Hazard and Climate Lab](https://www.plus.ac.at/geoinformatik/research/research-areas/risk-hazard-climate/?lang=en) for their ideas and support, and Assoc. Prof. Hermann Klug and Dr. Bernhard Zagel for their instruction and continuous feedback.
 
-Further developments have been part of my masters thesis, supervised by Prof. Dr. Dirk Tiede, Dr. Martin Sudmanns, and Dr. Zhara Dabiri.  
+Further developments have been part of my [master thesis](https://eplus.uni-salzburg.at/Abschlussarbeiten/content/titleinfo/11624947), supervised by Prof. Dr. Dirk Tiede, Dr. Martin Sudmanns, and Dr. Zhara Dabiri.  
 
 
 ## References
 
-Augustin, H., Sudmanns, M., Tiede, D., Lang, S., & Baraldi, A. (2019). Semantic Earth observation data cubes. Data, 4(3), 102.
-DOI: 10.3390/data4030102
+Augustin, H., Sudmanns, M., Tiede, D., Lang, S., & Baraldi, A.. Semantic Earth observation data cubes. Data, 4(3), 102 (2019). https://doi.org/10.3390/data4030102
 
-Baraldi, A., Humber, M.L., Tiede, D., Lang, S. (2018). GEO-CEOS stage 4 validation of the Satellite Image Automatic Mapper lightweight computer program for ESA Earth observation level 2 product generation – Part 2: Validation. Cogent Geosci. 4, 1–52.
-DOI: 10.1080/23312041.2018.1467254
+Baraldi, A., Humber, M.L., Tiede, D., Lang, S.. GEO-CEOS stage 4 validation of the Satellite Image Automatic Mapper lightweight computer program for ESA Earth observation level 2 product generation – Part 2: Validation. Cogent Geosci. 4, 1–52 (2018).  
+https://doi.org/10.1080/23312041.2018.1467254
 
+Meyer, F.. Ch. 2, The SAR Handbook: Comprehensive Methodologies for Forest Monitoring and Biomass Estimation (2019). https://doi.org/10.25966/nr2c-s697
 
-Meyer, F. (2019), Ch. 2, The SAR Handbook: Comprehensive Methodologies for Forest Monitoring and Biomass Estimation.
-DOI: 10.25966/nr2c-s697
+Frost, Victor S., Josephine Abbott Stiles, K. S. Shanmugan, and Julian C. Holtzman. 'A Model for Radar Images and Its Application to Adaptive Digital Filtering of Multiplicative Noise'. IEEE Transactions on Pattern Analysis and Machine Intelligence PAMI-4, no. 2 (March 1982): 15766. https://doi.org/10.1109/TPAMI.1982.4767223
+
+Cloude, S. R., and E. Pottier. An Entropy Based Classification Scheme for Land Applications of Polarimetric SAR. IEEE Transactions on Geoscience and Remote Sensing 35, no. 1 (1997): 68–78. https://doi.org/10.1109/36.551935
