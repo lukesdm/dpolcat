@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.13"
 # dependencies = [
-#     "dpolcat>=0.2.0.dev6",
+#     "dpolcat[hv]>=0.2.0.dev6",
 #     "scipy>=1.18.1",
 # ]
 # ///
