@@ -3,6 +3,9 @@
 # dependencies = [
 #     "dpolcat[hv]>=0.2.0.dev6",
 #     "scipy>=1.18.1",
+#     "hvplot",
+#     "geoviews",
+#     "bokeh<3.10",  # marimo compat. issue.
 # ]
 # ///
 
