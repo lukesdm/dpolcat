@@ -310,8 +310,8 @@ def _():
 def _():
     # Chunk size, for both reading (Dask) and writing (Zarr).
     # Chosen for a mix of time series and single-scene operations.
-    DASK_CHUNKS = {"time": 10, "y": 1024, "x": 1024}
-    ZARR_CHUNKS = (10, 1024, 1024)  # ⚠️ be very careful changing this!
+    DASK_CHUNKS = {"time": 8, "y": 1024, "x": 1024}
+    ZARR_CHUNKS = (8, 1024, 1024)  # ⚠️ be very careful changing this!
     return DASK_CHUNKS, ZARR_CHUNKS
 
 
