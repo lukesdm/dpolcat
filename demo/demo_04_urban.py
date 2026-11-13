@@ -1,7 +1,15 @@
+# /// script
+# requires-python = ">=3.13"
+# dependencies = [
+#     "dpolcat>=0.2.0.dev6",
+#     "scipy>=1.18.1",
+# ]
+# ///
+
 import marimo
 
-__generated_with = "0.25.1"
-app = marimo.App(width="medium")
+__generated_with = "0.25.2"
+app = marimo.App(width="medium", auto_download=["html"])
 
 with app.setup:
     import marimo as mo
@@ -42,7 +50,13 @@ def _():
 
 @app.cell
 def _():
-    aoi = gpd.read_file("gis/graz/graz_4326.gpkg")
+    aoi_path = Path("gis/graz/graz_4326.gpkg")
+    if aoi_path.exists():
+        aoi = gpd.read_file(aoi_path)
+    else:
+        aoi = gpd.read_file(
+            "https://github.com/lukesdm/dpolcat/raw/refs/heads/main/gis/graz/graz_4326.gpkg"
+        )
 
     date_range = "2020-01-01/2025-12-31"
 
@@ -159,7 +173,7 @@ def _(multibounce, yearly_mode):
 
     _cat_cmap = dpolcat.hv_utils.get_hex_colors()
 
-    ym_plot = gv.tile_sources.OSM * _ym.hvplot(x="x", y="y").opts(
+    ym_plot = gv.tile_sources.EsriWorldStreetMap * _ym.hvplot(x="x", y="y").opts(
         cmap=_cat_cmap,
         clim=(-0.5, dpolcat.NUM_CATEGORIES - 0.5),
         cticks=list(range(0, dpolcat.NUM_CATEGORIES)),
@@ -179,7 +193,7 @@ def _(multibounce, yearly_mode):
     # Present (1) -> Red
     _mb_cmap = ["#00000000", "#ff0000"]
 
-    mb_plot = gv.tile_sources.OSM * _mb.hvplot(x="x", y="y").opts(
+    mb_plot = gv.tile_sources.EsriWorldStreetMap * _mb.hvplot(x="x", y="y").opts(
         cmap=_mb_cmap,
         color_levels=2,
         clim=(-0.5, 1.5),
@@ -355,7 +369,7 @@ def _(linked_crosshair, mb_change):
         framewise=False,  # Prevent reset on year change
     )
 
-    change_plot = hv.element.tiles.OSM() * change_plot
+    change_plot = hv.element.tiles.EsriStreet() * change_plot
     return (change_plot,)
 
 
