@@ -24,6 +24,7 @@ with app.setup:
 
     import dpolcat
     import dpolcat.utils
+    import dpolcat.hv_utils
 
     # Some extra config for visualization
     hv.extension("bokeh")
@@ -224,7 +225,7 @@ def _(cat_result, post, pre, vh_db, vv_db):
 
     _width = 450
 
-    cat_cmap = dpolcat.utils.make_cmap()
+    cat_cmap = dpolcat.hv_utils.make_cmap()
 
     (
         plot_composite(_pre_comp).opts(frame_width=_width, title=f"VV-VH false-colour composite, {_pre_date}")
@@ -234,7 +235,7 @@ def _(cat_result, post, pre, vh_db, vv_db):
         )
         + plot_image(_post_cat).opts(
             cmap=cat_cmap, frame_width=_width, title=f"dpolcat categories, {_post_date}"
-        ) + dpolcat.utils.make_legend(size=300)
+        ) + dpolcat.hv_utils.make_legend(size=300)
     ).cols(2)
     return
 

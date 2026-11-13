@@ -17,17 +17,13 @@ with app.setup:
     import numpy as np
     import odc.stac
     import pandas as pd
-    import planetary_computer
-    import pystac_client
-    import rasterio.features
     import rioxarray
-    import shapely.geometry as sg
-    import shapely.ops as so
     import xarray
 
     import dpolcat
     import dpolcat.modelling
     import dpolcat.utils
+    import dpolcat.hv_utils
 
     hv.output(widget_location="top_left")
 
@@ -161,7 +157,7 @@ def _(multibounce, yearly_mode):
     _ym = yearly_mode.rio.write_nodata(0)
     _ym = _ym.rio.reproject(3857)
 
-    _cat_cmap = dpolcat.utils.get_hex_colors()
+    _cat_cmap = dpolcat.hv_utils.get_hex_colors()
 
     ym_plot = gv.tile_sources.OSM * _ym.hvplot(x="x", y="y").opts(
         cmap=_cat_cmap,

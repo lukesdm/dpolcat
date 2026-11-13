@@ -8,36 +8,25 @@ with app.setup:
     from collections.abc import Iterable
     from functools import partial
     from pathlib import Path
-    import tomllib
     from typing import Literal
     import xml.etree.ElementTree as ET
 
     import bokeh.models
     import dask
-    # from dask.diagnostics import ProgressBar
     import geopandas as gpd
     import numpy as np
     import odc.stac
-    # from osgeo import gdal
     import pandas as pd
     import pystac
     import pystac_client
-    # import planetary_computer
     import shapely.geometry as sg
     import xarray
-    import holoviews as hv
-    import hvplot.pandas
-    import hvplot.xarray
     import rioxarray
     import zarr
 
     import dpolcat.core as dpolcat
     import dpolcat.fast_frost as ff
     from dpolcat.pc_rio_driver import PCRioDriver
-
-    # gdal.UseExceptions()
-
-    # hv.extension("bokeh")
 
     # Want total coverage, with some wiggle room due to reprojection
     MIN_COVERAGE_FRACTION = 0.99
@@ -295,91 +284,6 @@ def _(mo):
     mo.md(r"""
     ## Visualization
     """)
-    return
-
-
-@app.function
-def make_cmap():
-    """Make a HoloViews-compatible categorical colormap (string key is needed)."""
-    return {
-        str(i): list(dpolcat.color_list[i])
-        for i in range(len(dpolcat.color_list))
-    }
-
-
-@app.function
-def get_hex_colors(cat_indexes = range(dpolcat.NUM_CATEGORIES)):
-    """Make a hex-string-format colour list for the given categories."""
-    return [
-        f"#{r:02x}{g:02x}{b:02x}"
-        for r, g, b in dpolcat.color_list[cat_indexes]
-    ]
-
-
-@app.function
-def make_legend(size=350):
-    """Create a legend (in the form of a Holoviews plot)."""
-    n_steps = 100
-    steps = np.linspace(-30.5, 10.5, n_steps)
-    vv_ramp = np.vstack([steps] * n_steps)
-    vh_ramp = vv_ramp.T
-
-    cat_values = xarray.DataArray(
-        dpolcat.categorize_np(vv_ramp, vh_ramp),
-        coords=[steps, steps],
-        dims=["VH", "VV"],
-    )
-
-    label_data = []
-    for i in range(1, dpolcat.NUM_CATEGORIES):
-        box = cat_values.where(cat_values == i, drop=True)
-        center_x = float(box["VV"].mean())
-        center_y = float(box["VH"].mean())
-        label_data.append((center_x, center_y, str(i)))
-
-    labels = hv.Labels(
-        label_data, kdims=["VV", "VH"], vdims=["text"]
-    ).opts(text_color="black")
-
-    return (
-        cat_values.astype("str")
-        .hvplot(cmap=make_cmap())
-        .opts(
-            width=size,
-            height=size,
-            title="NoData (0) is black",
-            xlabel="VV (dB)",
-            ylabel="VH (dB)",
-        )
-        * labels
-    )
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    ### Test/demo
-    """)
-    return
-
-
-@app.cell
-def _():
-    make_legend()
-    return
-
-
-@app.cell
-def _():
-    _n = dpolcat.NUM_CATEGORIES
-    _color = get_hex_colors(range(_n))
-    pd.DataFrame(
-        {
-            "category": range(_n),
-            "count": [10] * _n,
-            "color": _color,
-        }
-    ).hvplot.bar(x="category", y="count", color="color")
     return
 
 

@@ -1,6 +1,6 @@
 [project]
 name = "dpolcat"
-version = "0.2.0.dev5"
+version = "0.2.0.dev6"
 authors = [{ name = "Luke McQuade", email = "2824165+lukesdm@users.noreply.github.com" }]
 description = "Semantic categorization of dual-polarimetric synthetic aperture radar (SAR) imagery."
 readme="README.md"
@@ -18,18 +18,17 @@ dependencies = [
     "pystac-client>=0.9.0",
     "numba>=0.68.0",
     "odc-stac>=0.5.3",
-    "rioxarray>=0.23.0",
+    "rioxarray>=0.23.0",  # GDAL 3.13+ is essential, it should be pulled in here via rasterio
     "zarr",
-    
-    # SHOULDDO: make optional
+]
+
+[project.optional-dependencies]
+hv = [
     "holoviews",
     "hvplot",
     "bokeh<3.10.0", # 3.10.x has a marimo incompatibility
     "geoviews"
 ]
-
-[project.optional-dependencies]
-gdal = ["gdal>=3.13.3"]
 
 [project.urls]
 Homepage = "https://github.com/lukesdm/dpolcat"
