@@ -18,15 +18,13 @@ with app.setup:
     import geopandas as gpd
     import numpy as np
     import odc.stac
-    
+
     import pandas as pd
     import pystac_client
     import planetary_computer
+    import rasterio
     import shapely.geometry as sg
     import xarray
-    import holoviews as hv
-    import hvplot.pandas
-    import hvplot.xarray
     import rioxarray
     import zarr
 
@@ -34,19 +32,24 @@ with app.setup:
     import dpolcat as dp
     import dpolcat.utils
 
+
+@app.cell
+def _():
+    # Notebook-mode setup
+    import holoviews as hv
+    import hvplot.pandas
+    import hvplot.xarray
+    from dpolcat import hv_utils
+
     hv.extension("bokeh")
-    
-    try:
-        from osgeo import gdal
-        gdal.UseExceptions()
-    except ImportError:
-        print("WARNING: GDAL is not installed. Some features will not work.")
+    return (hv_utils,)
+
 
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
     Luke McQuade, October 2026
-    
+
     # *dpolcat*: Processor
 
     This is a notebook/module for creating Sentinel-1 *dpolcat* time series/datacubes for a user-supplied area of interest (AoI) and time period. The main steps of the pipeline:
@@ -209,7 +212,9 @@ def get_items_epsg(sel_items):
 
 
 @app.cell
-def plot_footprints(p_aoi, sel_items_gdf):
+def plot_footprints(p_aoi, p_headless, sel_items_gdf):
+    mo.stop(p_headless)
+
     # Visualize the AoI and item footprints. Note: AoI geometry may appear a little off due to reprojection compat issue (https://github.com/oceanmodeling/stofs-event-dashboard/pull/36).
     (
         sel_items_gdf.hvplot(geo=True, alpha=0.2, color="orange")
@@ -448,6 +453,14 @@ def new_zarr_path(aoi_name):
 
 
 @app.cell
+def _():
+    # TODO: Remove before commit
+    from osgeo import gdal
+
+    return (gdal,)
+
+
+@app.cell
 def _(
     ZARR_CHUNKS,
     add_common_metadata,
@@ -524,20 +537,14 @@ def _(
     OVERVIEW_LEVELS = [2, 4, 8, 16]
 
     # Use this even for continuous data (better physicality and nodata handling)
-    OVERVIEW_RESAMPLING = "NEAREST"
+    OVERVIEW_RESAMPLING = rasterio.enums.Resampling.nearest
 
-    _gdal_ds = gdal.OpenEx(
-        out_zarr_path,
-        gdal.OF_MULTIDIM_RASTER | gdal.OF_UPDATE,
-        open_options=["USE_CONSOLIDATED_METADATA=NO"],
-    )
-    _gdal_root = _gdal_ds.GetRootGroup()
-
+    # VERSION B
     for _layer in layers:
-        _gdal_arr = _gdal_root.OpenMDArrayFromFullname(
-            f"{zarr_group_path}/{_layer}/{_layer}"
-        )
-        _gdal_arr.BuildOverviews(OVERVIEW_RESAMPLING, OVERVIEW_LEVELS)
+        with rasterio.open(
+            f'ZARR:"{out_zarr_path}":{zarr_group_path}/{_layer}/{_layer}', "r+"
+        ) as _r:
+            _r.build_overviews(OVERVIEW_LEVELS, OVERVIEW_RESAMPLING)
 
     # A note on the Zarr structure: the way multiscales/overviews work means
     # another level of nesting is needed whenever more than 1 variable is present
@@ -549,10 +556,6 @@ def _(
     # /{direction}_{relorbit}/vv_db/vv_db
     # /{direction}_{relorbit}/vv_db/ovr_2x/vv_db
     # etc
-
-    # Close GDAL items & finalize
-    # ----------
-    del _gdal_arr, _gdal_root, _gdal_ds
 
     zarr.consolidate_metadata(out_zarr_path)
 
@@ -617,7 +620,7 @@ def _(preview_resolution, resolution, result_ds):
 
 
 @app.cell
-def _(p_write_intermediate_data, result_preview):
+def _(hv_utils, p_write_intermediate_data, result_preview):
     # Result preview.
 
     def plot_backscatter(da):
@@ -638,7 +641,7 @@ def _(p_write_intermediate_data, result_preview):
         x="x",
         y="y",
         data_aspect=1.0,
-        cmap=dpolcat.utils.make_cmap(),
+        cmap=hv_utils.make_cmap(),
         frame_width=plot_width,
         tools=[linked_crosshair],
     )
@@ -646,7 +649,7 @@ def _(p_write_intermediate_data, result_preview):
     if p_write_intermediate_data:
         _plot = (
             _dpolcat_plot
-            + dpolcat.utils.make_legend(size=250).opts(width=350)
+            + hv_utils.make_legend(size=250).opts(width=350)
             + plot_backscatter(result_preview["vv_db"]).opts(
                 frame_width=plot_width, tools=[linked_crosshair]
             )
@@ -655,7 +658,7 @@ def _(p_write_intermediate_data, result_preview):
             )
         ).cols(2)
     else:
-        _plot = (_dpolcat_plot + dpolcat.utils.make_legend(size=250)).cols(2)
+        _plot = (_dpolcat_plot + hv_utils.make_legend(size=250)).cols(2)
     _plot
     return
 
@@ -694,7 +697,7 @@ def _():
 
 
 @app.cell
-def _(OVERVIEW_LEVELS, layers, out_zarr_path, ui_vrt, zarr_group_path):
+def _(OVERVIEW_LEVELS, gdal, layers, out_zarr_path, ui_vrt, zarr_group_path):
     mo.stop(not ui_vrt.value, "Click the button above to create .VRT files.")
 
     def zarr_layer_vrt(zarr_path, layer, levels, vrt_path=None):
@@ -748,13 +751,13 @@ def _():
 
 
 @app.cell
-def _(aoi_name, result_ds, ui_export):
+def _(p_aoi_name, result_ds, ui_export):
     mo.stop(not ui_export.value, "Click the button above to export.")
 
     exported_cogs = []
     for timeslice in result_ds["dpolcat"]:
         _date = str(timeslice["time"].values)[:10]
-        _filename = f"data/dpolcat-{aoi_name}-{_date}.tif"
+        _filename = f"data/dpolcat-{p_aoi_name}-{_date}.tif"
         _da = timeslice
         # _da = timeslice.astype(np.uint8).rename("dpolcat")
         _da = _da.rio.write_nodata(0)

@@ -23,6 +23,7 @@ with app.setup:
 
     import dpolcat
     import dpolcat.utils
+    import dpolcat.hv_utils
 
 
 @app.cell(hide_code=True)
@@ -189,7 +190,7 @@ def _():
 
 @app.cell
 def _():
-    dpolcat.utils.make_legend()
+    dpolcat.hv_utils.make_legend()
     return
 
 
@@ -216,7 +217,7 @@ def _(cat_result, vh_db, vv_db):
     # First, we need to convert to str for categorical colourmap to work.
     _da = cat_result.astype("str")
 
-    cat_cmap = dpolcat.utils.make_cmap()
+    cat_cmap = dpolcat.hv_utils.make_cmap()
 
     # Setup linked crosshairs,
     # via https://discourse.holoviz.org/t/linked-crosshair/4326/2
@@ -231,7 +232,7 @@ def _(cat_result, vh_db, vv_db):
         plot_image(_da, "dpolcat", "category").opts(
             cmap=cat_cmap, frame_width=350, tools=[linked_crosshair, "hover"]
         )
-        + dpolcat.utils.make_legend(size=250).opts(width=300)
+        + dpolcat.hv_utils.make_legend(size=250).opts(width=300)
         + plot_image(vv_db, "VV", "dB").opts(
             frame_width=350, tools=[linked_crosshair, "hover"]
         )
@@ -311,7 +312,7 @@ def _(cat_cmap, cat_result, cat_result_filt):
             frame_width=350,
             title="Frost-filtered: dpolcat (category)",
         )
-        + dpolcat.utils.make_legend(size=250)
+        + dpolcat.hv_utils.make_legend(size=250)
     )
     return
 
@@ -337,7 +338,7 @@ def _(cat_result_filt):
 def _(cat_counts):
     def plot_cat_counts(cat_counts):
         _df = cat_counts.copy()
-        _df["color"] = _color = dpolcat.utils.get_hex_colors(cat_counts.index)
+        _df["color"] = _color = dpolcat.hv_utils.get_hex_colors(cat_counts.index)
         _df
         return (
             _df.reset_index()
