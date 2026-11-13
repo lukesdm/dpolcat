@@ -6,6 +6,8 @@ app = marimo.App(width="medium")
 with app.setup:
     import marimo as mo
 
+    from pathlib import Path
+
     import bokeh.models
     import geopandas as gpd
     import geoviews as gv
@@ -27,6 +29,8 @@ with app.setup:
     import dpolcat.modelling
     import dpolcat.utils
 
+    hv.output(widget_location="top_left")
+
 
 @app.cell(hide_code=True)
 def _():
@@ -47,8 +51,18 @@ def _():
     date_range = "2020-01-01/2025-12-31"
 
     dpolcat_zarr = "data/dpolcat_graz_full.zarr"
+
     sat_direction = "descending"
     sat_rel_orbit = 22
+
+    # Download the demo datacube if it doesn't already exist.
+    if not Path(dpolcat_zarr).exists():
+        import tempfile, urllib.request, zipfile
+
+        dpolcat_zarr_remote = "https://geodata.mcquade.dev/dpolcat/v0_2_0/dpolcat_graz_full.zarr.zip"
+        with tempfile.NamedTemporaryFile(suffix=".zip") as tmp:
+            urllib.request.urlretrieve(dpolcat_zarr_remote, tmp.name)
+            zipfile.ZipFile(tmp.name).extractall("data")
     return aoi, dpolcat_zarr, sat_direction, sat_rel_orbit
 
 
@@ -113,6 +127,11 @@ def _(da_dpolcat, scipy):
     yearly_mode = da_dpolcat.resample(time="YE").reduce(
         lambda cat, axis: scipy.stats.mode(cat, axis=axis).mode, dim="time"
     )
+
+    # Index by year instead of full timestamp
+    yearly_mode = yearly_mode.assign_coords(
+        year=yearly_mode.time.dt.year
+    ).swap_dims(time="year")
     return (yearly_mode,)
 
 
@@ -120,37 +139,51 @@ def _(da_dpolcat, scipy):
 def _(MultiBounce, yearly_mode):
     multibounce = yearly_mode.isin(MultiBounce).astype(np.int8)
 
-    # Tidy metadata
     multibounce = multibounce.rename("multibounce")
-    multibounce = multibounce.assign_coords(
-        year=multibounce.time.dt.year
-    ).swap_dims(time="year")
     return (multibounce,)
 
 
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    Visualize the presence of multibounce, year by year.
+    Visualize the modal categories and presence of multibounce, year by year.
     """)
     return
 
 
-@app.cell
-def _(multibounce):
-    # Using hvplot(`geo=True`) is very slow, but a reproject here instead is fast.
-    _mb = multibounce.rio.reproject(3857)
-
+@app.cell(hide_code=True)
+def _(multibounce, yearly_mode):
     # Initial map extent, EPSG:3857
     init_extent_xs = (1710000, 1728000)
     init_extent_ys = (5944000, 5962000)
 
+    # Using hvplot(`geo=True`) is very slow for these rasters, a reproject here instead is faster.
+    _ym = yearly_mode.rio.write_nodata(0)
+    _ym = _ym.rio.reproject(3857)
+
+    _cat_cmap = dpolcat.utils.get_hex_colors()
+
+    ym_plot = gv.tile_sources.OSM * _ym.hvplot(x="x", y="y").opts(
+        cmap=_cat_cmap,
+        clim=(-0.5, dpolcat.NUM_CATEGORIES - 0.5),
+        cticks=list(range(0, dpolcat.NUM_CATEGORIES)),
+        title="Modal category",
+        active_tools=["wheel_zoom"],
+        xlim=init_extent_xs,
+        ylim=init_extent_ys,
+        frame_width=400,
+        frame_height=400,
+        framewise=False,  # Prevent reset on year change
+    )
+
+    _mb = multibounce.rio.reproject(3857)
+
     # Colourmap:
     # Absent (0) -> Transparent
     # Present (1) -> Red
-    _mb_cmap = cmap = ["#00000000", "#ff0000"]
+    _mb_cmap = ["#00000000", "#ff0000"]
 
-    gv.tile_sources.OSM * _mb.hvplot(x="x", y="y").opts(
+    mb_plot = gv.tile_sources.OSM * _mb.hvplot(x="x", y="y").opts(
         cmap=_mb_cmap,
         color_levels=2,
         clim=(-0.5, 1.5),
@@ -163,6 +196,12 @@ def _(multibounce):
         frame_height=400,
         framewise=False,  # Prevent reset on year change
     )
+    return mb_plot, ym_plot
+
+
+@app.cell
+def _(mb_plot, ym_plot):
+    (ym_plot + mb_plot).cols(2).opts(title="")
     return
 
 
@@ -194,6 +233,8 @@ def _(multibounce):
     mb_change = (
         multibounce + multibounce - multibounce.shift(year=1, fill_value=127)
     )
+
+    mb_change = mb_change.rename("change")
 
     # Drop the first year, which has no change information.
     mb_change = mb_change[1:]
@@ -356,8 +397,6 @@ def _(change_plot, linked_crosshair, ortho_2021, ortho_2024):
         )
     ).opts(title="")
 
-    hv.output(widget_location="top_left")
-
     plot_all
     return
 
@@ -400,7 +439,7 @@ def _():
     mo.md(r"""
     ## Conclusion
 
-    Hopefully, you will have seen a few instances of urban change highlighted by our model, when exploring above. But, you will also have noticed plenty of typically small areas (1-2 pixels) where there is no obvious change. Some common caveats and limitations of working with SAR apply here - georeferencing errors and noise. The model could likely be improved with some further spatial filtering.
+    Hopefully, you will have seen a few instances of urban change highlighted by our model, when exploring above. Notice that the category-change-pixels often do not occur directly on the site of the actual change (according to the aerial imagery)? double/triple bounce occur at building walls, so expect these to be captured at pixels *adjacent* to buildings. You will also have noticed plenty of typically small areas (1-2 pixels) where there is no obvious change. Some common caveats and limitations of working with SAR apply here - georeferencing errors and noise. The model could likely be improved with some further spatial filtering.
     """)
     return
 

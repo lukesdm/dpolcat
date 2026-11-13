@@ -47,6 +47,7 @@ platforms = ["win-64", "linux-64"]
 
 [tool.pixi.tasks]
 
+# Dependencies of the marimo/dev environment
 [tool.pixi.dependencies]
 dpolcat = { path = "." }
 holoviews = ">=1.23.2,<2"
@@ -56,6 +57,8 @@ xhistogram = ">=0.3.2,<0.4"
 geoviews = "==1.15.0" # SHOULDDO: Update this when possible
 cartopy = "<0.26" # prevent geoviews bug/incompatibility in current conda release # SHOULDDO: Remove this when possible
 bokeh = "<3.10.0" # not currently supported by marimo # SHOULDDO: Remove this when possible
+aiohttp = ">=3.14.5,<4"
+ruff = ">=0.17.5"
 
 [tool.pixi.feature.release.dependencies]
 python-build = "*"
@@ -77,6 +80,8 @@ version = "0.*"
 [tool.pixi.package.host-dependencies]
 hatchling = "*"
 
+# Dependencies of the redistributable conda package
+# These should resemble the pypi deps above, SHOULDDO: sort these out
 [tool.pixi.package.run-dependencies]
 python = ">=3.13"
 xarray = ">=2026.9.0"
