@@ -1,0 +1,30 @@
+# This workflow tests the dpolcat packaging and demo notebooks
+
+name: Python package
+
+on:
+    workflow_dispatch
+#   push:
+#     branches: [ "main" ]
+#   pull_request:
+#     branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    # strategy:
+    #   fail-fast: true
+    #   matrix:
+    #     python-version: ["3.13"]
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: prefix-dev/setup-pixi@v0.11.3
+      with:
+            pixi-version: v0.84.2
+
+            # cache: true
+            # auth-host: prefix.dev
+            # auth-token: ${{ secrets.PREFIX_DEV_TOKEN }}
+    - run: pixi run test
