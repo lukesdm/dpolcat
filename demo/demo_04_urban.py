@@ -11,7 +11,7 @@
 
 import marimo
 
-__generated_with = "0.25.2"
+__generated_with = "0.25.1"
 app = marimo.App(width="medium", auto_download=["html"])
 
 with app.setup:
@@ -70,12 +70,13 @@ def _():
 
     # Download the demo datacube if it doesn't already exist.
     if not Path(dpolcat_zarr).exists():
-        import tempfile, urllib.request, zipfile
+        import urllib.request, zipfile
 
+        Path("data").mkdir(exist_ok=True)
         dpolcat_zarr_remote = "https://geodata.mcquade.dev/dpolcat/v0_2_0/dpolcat_graz_full.zarr.zip"
-        with tempfile.NamedTemporaryFile(suffix=".zip") as tmp:
-            urllib.request.urlretrieve(dpolcat_zarr_remote, tmp.name)
-            zipfile.ZipFile(tmp.name).extractall("data")
+        with open("data/dpolcat_graz_full.zarr.zip", "w") as _zip:
+            urllib.request.urlretrieve(dpolcat_zarr_remote, _zip.name)
+            zipfile.ZipFile(_zip.name).extractall("data")
     return aoi, dpolcat_zarr, sat_direction, sat_rel_orbit
 
 

@@ -47,6 +47,7 @@ channels = ["conda-forge"]
 platforms = ["win-64", "linux-64"]
 
 [tool.pixi.tasks]
+test = "pixi run python demo/test_run_demos.py"
 
 # Dependencies of the marimo/dev environment
 [tool.pixi.dependencies]
