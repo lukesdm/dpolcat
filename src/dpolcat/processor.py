@@ -453,14 +453,6 @@ def new_zarr_path(aoi_name):
 
 
 @app.cell
-def _():
-    # TODO: Remove before commit
-    from osgeo import gdal
-
-    return (gdal,)
-
-
-@app.cell
 def _(
     ZARR_CHUNKS,
     add_common_metadata,
