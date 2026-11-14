@@ -371,8 +371,8 @@ def _(DASK_CHUNKS, bbox, epsg_num, resolution, sel_items, ui_run):
 def preprocess(p_speckle_filter, p_speckle_filter_window, vh_lin, vv_lin):
     # Apply speckle filtering and scaling
 
+    FROST_DAMPING_FACTOR = 2.0  # COULDDO: Parameterize if needed
     if p_speckle_filter == "Frost":
-        FROST_DAMPING_FACTOR = 2.0  # COULDDO: Parameterize if needed
         vv_filt = dpolcat.utils.frost_xr(
             vv_lin,
             nanny=True,
