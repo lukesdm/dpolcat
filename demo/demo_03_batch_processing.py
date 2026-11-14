@@ -19,6 +19,13 @@ with app.setup:
 
 @app.cell(hide_code=True)
 def _():
+    # For testing purposes
+    p_headless = False
+    return (p_headless,)
+
+
+@app.cell(hide_code=True)
+def _():
     mo.md(r"""
     ## *dpolcat* Demo 03: Batch Processing
 
@@ -64,8 +71,12 @@ def _(aoi, date_range):
 
 
 @app.cell
-def _(df_coverages):
-    ui_orbit_selector = mo.ui.table(df_coverages.reset_index(), selection="single")
+def _(df_coverages, p_headless):
+    ui_orbit_selector = mo.ui.table(
+        df_coverages.reset_index(),
+        selection="single",
+        initial_selection= [0] if p_headless else [],
+    )
     ui_orbit_selector
     return (ui_orbit_selector,)
 
@@ -75,7 +86,7 @@ def _(ui_orbit_selector):
     mo.stop(
         len(ui_orbit_selector.value) == 0
         or ui_orbit_selector.value["full_scenes"].values[0] == 0,
-        "Selected an entry with at least 1 full scene.",
+        "Select an entry with at least 1 full scene.",
     )
     sat_direction = ui_orbit_selector.value["sat:orbit_state"].values[0]
     sat_rel_orbit = ui_orbit_selector.value["sat:relative_orbit"].values[0]
@@ -182,8 +193,8 @@ def _():
 
 
 @app.cell
-def _(out_zarr_path, processor_params, ui_start):
-    mo.stop(not ui_start.value, "Click 👆 to start.")
+def _(out_zarr_path, p_headless, processor_params, ui_start):
+    mo.stop(not (ui_start.value or p_headless), "Click 👆 to start.")
 
     assert not Path(out_zarr_path).exists(), f"Datacube {out_zarr_path} already exists, please remove and try again."
 
@@ -278,8 +289,8 @@ def _():
 
 
 @app.cell
-def _(processor_params_append, ui_append):
-    mo.stop(not ui_append.value, "Click 👆 to start.")
+def _(p_headless, processor_params_append, ui_append):
+    mo.stop(not (ui_append.value or p_headless), "Click 👆 to start.")
 
     _out_cells, append_result_vars = dpolcat.processor.app.run(
         processor_params_append

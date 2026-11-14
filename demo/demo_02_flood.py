@@ -35,6 +35,13 @@ with app.setup:
 
 @app.cell(hide_code=True)
 def _():
+    # For testing purposes
+    p_headless = False
+    return (p_headless,)
+
+
+@app.cell(hide_code=True)
+def _():
     mo.md(r"""
     Luke McQuade, orig. June 2023, updated October 2026.
 
@@ -390,8 +397,8 @@ def _():
 
 
 @app.cell
-def _(btn_evaluate, epsg_num, flooded_thres):
-    mo.stop(not btn_evaluate.value, "Click 👆 to start.")
+def _(btn_evaluate, epsg_num, flooded_thres, p_headless):
+    mo.stop(not (btn_evaluate.value or p_headless), "Click 👆 to start.")
 
     _da = flooded_thres.astype(np.uint8)
     _polys = rasterio.features.shapes(_da, transform=_da.rio.transform())
