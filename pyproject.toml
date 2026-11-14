@@ -1,6 +1,6 @@
 [project]
 name = "dpolcat"
-version = "0.2.0.dev6"
+version = "0.2.0.dev7"
 authors = [{ name = "Luke McQuade", email = "2824165+lukesdm@users.noreply.github.com" }]
 description = "Semantic categorization of dual-polarimetric synthetic aperture radar (SAR) imagery."
 readme="README.md"
