@@ -58,8 +58,6 @@ def _():
             "https://github.com/lukesdm/dpolcat/raw/refs/heads/main/gis/graz/graz_4326.gpkg"
         )
 
-    date_range = "2020-01-01/2025-12-31"
-
     dpolcat_zarr = "data/dpolcat_graz_full.zarr"
 
     sat_direction = "descending"
@@ -100,6 +98,22 @@ def _(dpolcat_zarr, sat_direction, sat_rel_orbit):
     # CRS may also not be picked up automatically, so set it here.
     da_dpolcat = da_dpolcat.rio.write_crs(da_dpolcat._CRS["wkt"])
     return (da_dpolcat,)
+
+
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
+    Display the date range of the time series.
+    """)
+    return
+
+
+@app.cell
+def _(da_dpolcat):
+    _first = da_dpolcat.indexes["time"][0]
+    _last = da_dpolcat.indexes["time"][-1]
+    mo.md(f"Start: {str(_first)[:10]} <br> End: {str(_last)[:10]}")
+    return
 
 
 @app.cell(hide_code=True)
