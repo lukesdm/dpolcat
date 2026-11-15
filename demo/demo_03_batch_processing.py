@@ -106,7 +106,7 @@ def _(sat_direction, sat_rel_orbit, stac_items_gdf):
         orbit_direction=sat_direction,
         relative_orbit=sat_rel_orbit,
     )
-    sel_items = sel_items_gdf["_item"].values
+    sel_items = sel_items_gdf["_item"].values  # noqa: F841
     return (sel_items_gdf,)
 
 

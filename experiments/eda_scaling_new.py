@@ -343,7 +343,7 @@ def _(
 ):
     mo.stop(not ui_begin_analysis.value, "Click 👆 to begin.")
 
-    zarr_root = zarr.open_group(result_store, mode="a")
+    zarr.open_group(result_store, mode="a")
 
     results_new = {}
     for _idx, _row in selected_inputs.iterrows():
