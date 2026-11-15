@@ -21,6 +21,7 @@ with app.setup:
     import pystac_client
     import shapely.geometry as sg
     import xarray
+    import rasterio
     import rioxarray
     import zarr
 
@@ -310,6 +311,42 @@ def write_qgis_colormap():
     f = open("dpolcat-qgis-cmap.clr", "w")
     f.writelines(lines)
     f.close()
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Other
+    """)
+    return
+
+
+@app.function
+def check_gdal_version() -> bool:
+    """Check whether the installed version of GDAL supports all the features we need."""
+    major, minor = rasterio.__gdal_version__.split(".")[:2]
+    
+    # GDAL 3.13 is the minimum version supporting Zarr overview/multiscale-writing
+    return int(major) >= 3 and int(minor) >= 13
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Test/demo
+    """)
+    return
+
+
+@app.cell
+def _():
+    check_gdal_version()
+    return
+
+
+@app.cell
+def _():
+    return
 
 
 if __name__ == "__main__":

@@ -73,6 +73,7 @@ def _():
     | `p_speckle_filter_window` | Speckle filter window size, default 5. |
     | `p_out_zarr_path` | Path to the ZARR store. |
     | `p_write_intermediate_data` | Whether to write intermediate backscatter data also (defaults to False). |
+    | `p_build_overviews` | Whether to build Zarr overviews/multiscales (defaults to True). |
     """)
     return
 
@@ -440,9 +441,16 @@ def _(
 @app.cell
 def _():
     mo.md(r"""
-    ### Categorization
+    ### Perform categorization
     """)
     return
+
+
+@app.cell
+def _():
+    # Whether to build Zarr overviews/multiscales. Note: This requires GDAL 3.13+.
+    p_build_overviews = True
+    return (p_build_overviews,)
 
 
 @app.function
@@ -458,6 +466,7 @@ def _(
     add_common_metadata,
     epsg_num,
     p_aoi_name,
+    p_build_overviews,
     p_out_zarr_path,
     p_sat_direction,
     p_sat_rel_orbit,
@@ -531,12 +540,14 @@ def _(
     # Use this even for continuous data (better physicality and nodata handling)
     OVERVIEW_RESAMPLING = rasterio.enums.Resampling.nearest
 
-    # VERSION B
-    for _layer in layers:
-        with rasterio.open(
-            f'ZARR:"{out_zarr_path}":{zarr_group_path}/{_layer}/{_layer}', "r+"
-        ) as _r:
-            _r.build_overviews(OVERVIEW_LEVELS, OVERVIEW_RESAMPLING)
+    if p_build_overviews:
+        _supported = dpolcat.utils.check_gdal_version()
+        assert _supported, "Attempting to add overviews, but the installed GDAL version does not support this."
+        for _layer in layers:
+            with rasterio.open(
+                f'ZARR:"{out_zarr_path}":{zarr_group_path}/{_layer}/{_layer}', "r+"
+            ) as _r:
+                _r.build_overviews(OVERVIEW_LEVELS, OVERVIEW_RESAMPLING)
 
     # A note on the Zarr structure: the way multiscales/overviews work means
     # another level of nesting is needed whenever more than 1 variable is present
@@ -689,7 +700,7 @@ def _():
 
 
 @app.cell
-def _(OVERVIEW_LEVELS, gdal, layers, out_zarr_path, ui_vrt, zarr_group_path):
+def _(OVERVIEW_LEVELS, layers, out_zarr_path, ui_vrt, zarr_group_path):
     mo.stop(not ui_vrt.value, "Click the button above to create .VRT files.")
 
     import rasterio.shutil as rasterio_shutil
