@@ -14,29 +14,19 @@ def linear_to_db(x):
     return 10 * np.log10(x)
 
 
-# This used to do a different transform, keep this as a passthrough until the rest of the code is updated.
-def scale_nice(x):
-    return linear_to_db(x)
-
-
-def xr_scale_nice(x):
-    """XArray, Dask-oriented, version of scaling function."""
-    return xarray.apply_ufunc(scale_nice, x, dask="parallelized", output_dtypes=[float])
-
-
 # Remember to keep this updated.
 NUM_CATEGORIES = 20
 """Total number of categories."""
 
 
 @njit
-def categorize(vv_scaled, vh_scaled):
+def categorize(vv_db, vh_db):
     """
     Our dual-polarimetric categorization decision tree algorithm.
-    Inputs should be in numpy or xarray-compatible form, scaled using our custom scaling function.
+    Inputs should be RTC backscatter power ratio (dB) in numpy or xarray-compatible form.
     """
-    vv = vv_scaled
-    vh = vh_scaled
+    vv = vv_db
+    vh = vh_db
 
     i = 0
     if vv is None or vh is None:

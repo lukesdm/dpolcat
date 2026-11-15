@@ -222,10 +222,10 @@ def _(dpolcat, ds, epsg, xarray):
     vv_lin = ds.vv
     vh_lin = ds.vh
 
-    vv_sn = dpolcat.xr_scale_nice(vv_lin)
-    vh_sn = dpolcat.xr_scale_nice(vh_lin)
+    vv_db = dpolcat.linear_to_db(vv_lin)
+    vh_db = dpolcat.linear_to_db(vh_lin)
 
-    dpds = xarray.Dataset({"vv": vv_sn.compute(), "vh": vh_sn.compute()})
+    dpds = xarray.Dataset({"vv": vv_db.compute(), "vh": vh_db.compute()})
     dpds.rio.write_crs(epsg, inplace=True)
     return (dpds,)
 
@@ -234,7 +234,7 @@ def _(dpolcat, ds, epsg, xarray):
 def _():
     # Export (+ dpolcat)
     # dpds["vv"].rio.to_raster("inverness-vv.tif")
-    # dpcats = dpolcat.xr_categorize(vv_sn, vh_sn).compute()
+    # dpcats = dpolcat.xr_categorize(vv_db, vh_db).compute()
     # dpcats.astype(np.uint8).rio.to_raster("inverness-dpolcat.tif")
     return
 
@@ -355,8 +355,8 @@ def _(df_subsampled, hv):
             frame_height=450,
             legend=False,
             colorbar=False,
-            xlim=(0, 1),
-            ylim=(0, 1),
+            xlim=(-20, 5),
+            ylim=(-30, 0),
         )
         _p = _p.opts(axiswise=True)
         ps.append(_p)
@@ -398,8 +398,17 @@ def _(mo):
 
 @app.cell
 def _(short_id, subsampled_stats):
-    ptitle = f'medians_{short_id}'
-    _p = subsampled_stats[['vv_50%', 'vh_50%']].hvplot.scatter(x='vv_50%', y='vh_50%', by='sample_name', xlim=(0, 0.7), ylim=(0, 0.5), data_aspect=1, frame_width=570, xlabel='vv_median', ylabel='vh_median', title=ptitle)
+    ptitle = f"medians_{short_id}"
+    _p = subsampled_stats[["vv_50%", "vh_50%"]].hvplot.scatter(
+        x="vv_50%",
+        y="vh_50%",
+        by="sample_name",
+        data_aspect=1,
+        frame_height=500,
+        xlabel="vv_median",
+        ylabel="vh_median",
+        title=ptitle,
+    )
     _p
     return (ptitle,)
 
@@ -473,7 +482,6 @@ def _(df_stats_mt):
         xlabel="vv_median", ylabel="vh_median",
         hover_cols=["date"], marker="x", cmap="glasbey_warm",
         height=550
-        # xlim=(0,0.7), ylim=(0,0.5),
     )
     return
 
