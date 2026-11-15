@@ -373,13 +373,6 @@ def _(dpds, pd, sample_polys):
     return (df_samples,)
 
 
-@app.cell
-def _():
-    # TODO: Investigate invalid values. (there are 17 warnings... number of samples)
-    # They are probably NaNs outside of the bounds of the image.
-    return
-
-
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -658,11 +651,6 @@ def _(cvars, hv):
 @app.cell
 def _(biv_plot, legend):
     biv_plot + legend
-    return
-
-
-@app.cell
-def _():
     return
 
 
