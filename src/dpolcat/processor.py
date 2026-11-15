@@ -29,7 +29,7 @@ with app.setup:
     import zarr
 
     from dpolcat.pc_rio_driver import PCRioDriver
-    import dpolcat as dp
+    import dpolcat
     import dpolcat.utils
 
 
@@ -386,11 +386,11 @@ def preprocess(p_speckle_filter, p_speckle_filter_window, vh_lin, vv_lin):
             damping_factor=FROST_DAMPING_FACTOR,
             win_size=p_speckle_filter_window,
         )
-        vv_db = dp.linear_to_db(vv_filt)
-        vh_db = dp.linear_to_db(vh_filt)
+        vv_db = dpolcat.linear_to_db(vv_filt)
+        vh_db = dpolcat.linear_to_db(vh_filt)
     else:
-        vv_db = dp.linear_to_db(vv_lin)
-        vh_db = dp.linear_to_db(vh_lin)
+        vv_db = dpolcat.linear_to_db(vv_lin)
+        vh_db = dpolcat.linear_to_db(vh_lin)
     return FROST_DAMPING_FACTOR, vh_db, vv_db
 
 
@@ -484,7 +484,7 @@ def _(
 
     # Categorization Dask pipeline; write to Zarr
     # --------------
-    categorized = dp.xr_categorize(vv_db, vh_db)
+    categorized = dpolcat.xr_categorize(vv_db, vh_db)
     categorized = categorized.rio.write_crs(epsg_num)
     categorized.attrs.pop("nodata", None)  # Remove old 'nan' nodata
     # For some reason this breaks plotting later:
@@ -670,7 +670,7 @@ def _(hv_utils, p_write_intermediate_data, result_preview):
 def _(result_preview, ui_viz_enabled):
     mo.stop(not ui_viz_enabled.value)
 
-    _bins = list(range(0, dp.NUM_CATEGORIES + 1))
+    _bins = list(range(0, dpolcat.NUM_CATEGORIES + 1))
     result_preview["dpolcat"].hvplot.hist(bins=_bins).opts(
         tools=["wheel_zoom"]
     )
