@@ -288,13 +288,6 @@ def _(dpds, pd, sample_polys):
     return (df_samples,)
 
 
-@app.cell
-def _():
-    # TODO: Investigate invalid values. (there are 17 warnings... number of samples)
-    # They are probably NaNs outside of the bounds of the image.
-    return
-
-
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -390,10 +383,10 @@ def _(df_subsampled_1, dp_cmap, hv):
 
         # Need to convert to string for categorical cmap to work
         _dfs['dpolcat'] = _dfs['dpolcat'].astype('str')
-    
+
         # Need to convert type again due to a holoviews/pandas compat. issue.
         _dfs['dpolcat'] = _dfs['dpolcat'].astype(object)
-    
+
         _hvds = hv.Dataset(data=_dfs, kdims=['time', 'px_idx'], vdims=['dpolcat'])
         _hm = hv.HeatMap(_hvds).opts(cmap=dp_cmap)
         _p = _hm * hv.Labels(_hm).opts(title=f'Pol. Cats.: {sel_sample}')

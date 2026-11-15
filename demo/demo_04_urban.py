@@ -458,10 +458,5 @@ def _():
     return
 
 
-@app.cell(hide_code=True)
-def _():
-    return
-
-
 if __name__ == "__main__":
     app.run()

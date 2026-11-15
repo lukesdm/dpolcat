@@ -388,11 +388,6 @@ def _(s1_item_id, subsampled_stats):
     return (short_id,)
 
 
-@app.cell
-def _():
-    return
-
-
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
