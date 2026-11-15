@@ -171,6 +171,7 @@ def _(aoi, date_range, out_zarr_path, sat_direction, sat_rel_orbit):
         p_speckle_filter_window=5,
         p_out_zarr_path=out_zarr_path,
         p_write_intermediate_data=False,
+        p_build_overviews = dpolcat.utils.check_gdal_version()
     )
     return (processor_params,)
 
