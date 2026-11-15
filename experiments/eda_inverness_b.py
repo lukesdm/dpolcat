@@ -277,7 +277,7 @@ def _(mo):
 def _(dpds, pd, sample_polys):
     sdfs = []
 
-    for idx, sample_poly in sample_polys.iterrows():
+    for _idx, sample_poly in sample_polys.iterrows():
         sampled = dpds.rio.clip(geometries=[sample_poly.geometry])
         sdf = sampled[["vv", "vh", "dpolcat"]].to_dataframe() \
           .drop(columns=["spatial_ref"]).dropna()

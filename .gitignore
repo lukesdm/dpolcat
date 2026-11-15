@@ -8,3 +8,6 @@ __pycache__
 
 # Build
 dist/
+
+# Editor stuff
+.vscode/settings.json

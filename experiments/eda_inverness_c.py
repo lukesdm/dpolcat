@@ -181,7 +181,7 @@ def _(mo):
 @app.cell
 def _(epsg, gpd):
     sample_polys = gpd.read_file("gis/inverness/inverness-samples.gpkg").to_crs(epsg)
-    n_sample_feats = sample_polys.shape[0]
+    n_sample_feats = sample_polys.shape[0]  # noqa: F841
     aoi = gpd.read_file("gis/inverness/inverness_aoi.gpkg").to_crs(epsg)
 
     # A quick plot
@@ -214,7 +214,7 @@ def _(aoi, epsg, items, np, odc):
         nodata=np.nan, # override STAC-provided
     ).compute() # compute() here to avoid issues due to MSPC tokens expiring.
 
-    n_scenes = len(items)
+    n_scenes = len(items)  # noqa: F841
     return (ds,)
 
 
@@ -362,7 +362,7 @@ def _(mo):
 def _(dpds, pd, sample_polys):
     sdfs = []
 
-    for idx, sample_poly in sample_polys.iterrows():
+    for _idx, sample_poly in sample_polys.iterrows():
         sampled = dpds.rio.clip(geometries=[sample_poly.geometry])
         sdf = sampled[["vv", "vh", "dpolcat"]].to_dataframe() \
           .drop(columns=["spatial_ref"]).dropna()
