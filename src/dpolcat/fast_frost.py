@@ -21,8 +21,8 @@ Licence: LGPL-3.0.
 """
 
 import numpy as np
-from scipy.ndimage import uniform_filter
 from numba import njit, prange
+from scipy.ndimage import uniform_filter
 
 
 @njit(parallel=True, fastmath=True)

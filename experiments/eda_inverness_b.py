@@ -36,8 +36,8 @@ def _():
     import numpy as np
     import odc.stac
     import pandas as pd
-    import pystac_client
     import planetary_computer
+    import pystac_client
     import rioxarray
     import xarray
 

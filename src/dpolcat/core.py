@@ -4,9 +4,9 @@ dpolcat/core - polarimetric categorization of dual-pol. synthetic aperture radar
 Author: Luke McQuade
 """
 
-from numba import njit
 import numpy as np
 import xarray
+from numba import njit
 
 
 def linear_to_db(x):

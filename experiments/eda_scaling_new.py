@@ -4,10 +4,6 @@ __generated_with = "0.25.1"
 app = marimo.App(width="medium")
 
 with app.setup:
-    import marimo as mo
-
-    import os
-    from pathlib import Path
 
     import dask
     import dask.distributed
@@ -15,17 +11,15 @@ with app.setup:
     import holoviews as hv
     import hvplot.pandas
     import hvplot.xarray
+    import marimo as mo
     import numpy as np
     import odc.stac
     import pandas as pd
     import pystac_client
-    import planetary_computer
     import rioxarray
-    import shapely
-    import shapely.geometry as sg
     import xarray
-    from xhistogram.xarray import histogram
     import zarr
+    from xhistogram.xarray import histogram
 
     from dpolcat.pc_rio_driver import PCRioDriver
 

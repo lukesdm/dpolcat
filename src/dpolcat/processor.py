@@ -4,33 +4,28 @@ __generated_with = "0.25.1"
 app = marimo.App(width="medium")
 
 with app.setup:
-    import marimo as mo
-
-    from collections import defaultdict
-    from functools import partial
     import importlib.metadata
-    from pathlib import Path
     import xml.etree.ElementTree as ET
+    from collections import defaultdict
+    from pathlib import Path
 
     import bokeh.models
     import dask
-    from dask.diagnostics import ProgressBar
     import geopandas as gpd
+    import marimo as mo
     import numpy as np
     import odc.stac
-
     import pandas as pd
-    import pystac_client
-    import planetary_computer
     import rasterio
+    import rioxarray
     import shapely.geometry as sg
     import xarray
-    import rioxarray
     import zarr
+    from dask.diagnostics import ProgressBar
 
-    from dpolcat.pc_rio_driver import PCRioDriver
     import dpolcat
     import dpolcat.utils
+    from dpolcat.pc_rio_driver import PCRioDriver
 
 
 @app.cell
@@ -39,6 +34,7 @@ def _():
     import holoviews as hv
     import hvplot.pandas
     import hvplot.xarray
+
     from dpolcat import hv_utils
 
     hv.extension("bokeh")

@@ -4,9 +4,9 @@ __generated_with = "0.25.1"
 app = marimo.App(width="medium")
 
 with app.setup:
-    import marimo as mo
-
     import logging
+
+    import marimo as mo
 
     logging.basicConfig(
         level=logging.INFO,

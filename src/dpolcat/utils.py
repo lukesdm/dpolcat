@@ -4,30 +4,21 @@ __generated_with = "0.25.1"
 app = marimo.App(width="medium")
 
 with app.setup:
-    from collections import defaultdict
     from collections.abc import Iterable
     from functools import partial
-    from pathlib import Path
     from typing import Literal
-    import xml.etree.ElementTree as ET
 
-    import bokeh.models
-    import dask
     import geopandas as gpd
     import numpy as np
-    import odc.stac
     import pandas as pd
     import pystac
     import pystac_client
-    import shapely.geometry as sg
-    import xarray
     import rasterio
     import rioxarray
-    import zarr
+    import xarray
 
     import dpolcat.core as dpolcat
     import dpolcat.fast_frost as ff
-    from dpolcat.pc_rio_driver import PCRioDriver
 
     # Want total coverage, with some wiggle room due to reprojection
     MIN_COVERAGE_FRACTION = 0.99
