@@ -96,12 +96,12 @@ categorize_np = np.vectorize(categorize, otypes=[np.uint8])
 """Numpy vectorized version of the categorizer."""
 
 
-def xr_categorize(vv_scaled, vh_scaled):
+def xr_categorize(vv_db, vh_db):
     """XArray, Dask-oriented, version of the categorizer."""
     return xarray.apply_ufunc(
         categorize_np,
-        vv_scaled,
-        vh_scaled,
+        vv_db,
+        vh_db,
         dask="parallelized",
         output_dtypes=[np.uint8],
     ).rename("dpolcat")
