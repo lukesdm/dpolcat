@@ -48,6 +48,8 @@ platforms = ["win-64", "linux-64"]
 
 [tool.pixi.tasks]
 test = "python demo/test_run_demos.py"
+lint-src = "ruff check"
+lint = {cmd = "marimo check", depends-on = ["lint-src"]}
 
 # Dependencies of the marimo/dev environment
 [tool.pixi.dependencies]
@@ -103,3 +105,25 @@ manager = "pixi"
 [tool.marimo.runtime]
 auto_reload = "lazy"
 output_max_bytes = 100000000
+
+
+[tool.ruff]
+line-length = 1000  # we have some long markdown cells
+target-version = "py313"
+extend-exclude = ["archive"]
+
+[tool.ruff.lint.pyflakes]
+allowed-unused-imports = ["rioxarray", "hvplot.pandas", "hvplot.xarray"]
+
+[tool.ruff.lint]
+select = [
+  "E", # pycodestyle
+  "F", # pyflakes
+  "I", # isort
+  "B", # flake8-bugbear
+]
+ignore=[
+  "B021",  # false warnings on marimo cells that output strings
+  "B018",  # false warnings on cell outputs
+  "E702",  # multiple statements with ';'
+]  

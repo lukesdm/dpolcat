@@ -4,26 +4,18 @@ __generated_with = "0.25.1"
 app = marimo.App(width="medium")
 
 with app.setup:
-    import marimo as mo
-
     import bokeh.models
-    import numpy as np
-    import odc.stac
-    import pandas as pd
-    from pyproj import Transformer
-    import pystac
-    import pystac_client
-    import planetary_computer
-    import requests
-    import rioxarray
-    import holoviews as hv
-    import hvplot.xarray
     import hvplot.pandas
-    import xarray
+    import hvplot.xarray
+    import marimo as mo
+    import odc.stac
+    import planetary_computer
+    import pystac_client
+    import rioxarray
 
     import dpolcat
-    import dpolcat.utils
     import dpolcat.hv_utils
+    import dpolcat.utils
 
 
 @app.cell(hide_code=True)

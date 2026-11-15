@@ -4,16 +4,14 @@ __generated_with = "0.25.1"
 app = marimo.App(width="medium")
 
 with app.setup:
-    import marimo as mo
-
     import geopandas as gpd
     import geoviews as gv
     import holoviews as hv
-    import hvplot.xarray
     import hvplot.pandas
+    import hvplot.xarray
+    import marimo as mo
     import numpy as np
     import odc.stac
-    import pandas as pd
     import planetary_computer
     import pystac_client
     import rasterio.features
@@ -23,8 +21,8 @@ with app.setup:
     import xarray
 
     import dpolcat
-    import dpolcat.utils
     import dpolcat.hv_utils
+    import dpolcat.utils
 
     # Some extra config for visualization
     hv.extension("bokeh")

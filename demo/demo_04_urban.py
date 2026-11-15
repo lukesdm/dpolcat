@@ -15,26 +15,23 @@ __generated_with = "0.25.1"
 app = marimo.App(width="medium", auto_download=["html"])
 
 with app.setup:
-    import marimo as mo
-
     from pathlib import Path
 
     import bokeh.models
     import geopandas as gpd
     import geoviews as gv
     import holoviews as hv
-    import hvplot.xarray
     import hvplot.pandas
+    import hvplot.xarray
+    import marimo as mo
     import numpy as np
-    import odc.stac
-    import pandas as pd
     import rioxarray
     import xarray
 
     import dpolcat
+    import dpolcat.hv_utils
     import dpolcat.modelling
     import dpolcat.utils
-    import dpolcat.hv_utils
 
     hv.output(widget_location="top_left")
 
@@ -70,7 +67,8 @@ def _():
 
     # Download the demo datacube if it doesn't already exist.
     if not Path(dpolcat_zarr).exists():
-        import urllib.request, zipfile
+        import urllib.request
+        import zipfile
 
         Path("data").mkdir(exist_ok=True)
         dpolcat_zarr_remote = "https://geodata.mcquade.dev/dpolcat/v0_2_0/dpolcat_graz_full.zarr.zip"

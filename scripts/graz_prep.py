@@ -4,14 +4,13 @@ __generated_with = "0.25.1"
 app = marimo.App(width="medium")
 
 with app.setup:
-    import marimo as mo
-
     from pathlib import Path
 
     import geopandas as gpd
+    import marimo as mo
 
-    import dpolcat.utils
     import dpolcat.processor
+    import dpolcat.utils
 
 
 @app.cell(hide_code=True)
