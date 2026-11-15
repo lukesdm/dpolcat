@@ -216,15 +216,15 @@ def _(dpolcat, ds, epsg, xarray):
     vv_lin = ds.vv
     vh_lin = ds.vh
 
-    vv_sn = dpolcat.xr_scale_nice(vv_lin)
-    vh_sn = dpolcat.xr_scale_nice(vh_lin)
+    vv_db = dpolcat.linear_to_db(vv_lin)
+    vh_db = dpolcat.linear_to_db(vh_lin)
 
     dpds = xarray.Dataset(
-        {"vv": vv_sn.compute(), "vh": vh_sn.compute()}
+        {"vv": vv_db.compute(), "vh": vh_db.compute()}
     )
     dpds = dpds.rio.write_crs(epsg)
 
-    dpcats = dpolcat.xr_categorize(vv_sn, vh_sn).compute()
+    dpcats = dpolcat.xr_categorize(vv_db, vh_db).compute()
     dpcats = dpcats.rio.write_nodata(0)
     dpds["dpolcat"] = dpcats
     return dpcats, dpds

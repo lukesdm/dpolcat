@@ -270,20 +270,20 @@ def _(filter_toggle):
 @app.cell
 def _(dpolcat, filter_toggle, vh_filt, vh_lin, vv_filt, vv_lin):
     if filter_toggle.value == "Filtered":
-        vv_sn = dpolcat.xr_scale_nice(vv_filt)
-        vh_sn = dpolcat.xr_scale_nice(vh_filt)
+        vv_db = dpolcat.linear_to_db(vv_filt)
+        vh_db = dpolcat.linear_to_db(vh_filt)
     else:
-        vv_sn = dpolcat.xr_scale_nice(vv_lin)
-        vh_sn = dpolcat.xr_scale_nice(vh_lin)
-    return vh_sn, vv_sn
+        vv_db = dpolcat.linear_to_db(vv_lin)
+        vh_db = dpolcat.linear_to_db(vh_lin)
+    return vh_db, vv_db
 
 
 @app.cell
 def _(dpolcat, vv_filt, vv_lin):
     # A little demo of the filtering
     _ox, _oy = 300, 0
-    _unfilt = dpolcat.xr_scale_nice(vv_lin[0][_oy:_oy+1100, _ox:_ox+1000])
-    _filt = dpolcat.xr_scale_nice(vv_filt[0][_oy:_oy+1100, _ox:_ox+1000])
+    _unfilt = dpolcat.linear_to_db(vv_lin[0][_oy:_oy+1100, _ox:_ox+1000])
+    _filt = dpolcat.linear_to_db(vv_filt[0][_oy:_oy+1100, _ox:_ox+1000])
     _unfilt.hvplot(data_aspect=1.0) + _filt.hvplot(data_aspect=1.0)
     return
 
@@ -297,10 +297,10 @@ def _(mo):
 
 
 @app.cell
-def _(dpolcat, ds, epsg, vh_sn, vv_sn):
-    # dpds = xarray.Dataset({"vv": vv_sn.drop_vars("band"), "vh": vh_sn.drop_vars("band")})
+def _(dpolcat, ds, epsg, vh_db, vv_db):
+    # dpds = xarray.Dataset({"vv": vv_db.drop_vars("band"), "vh": vh_db.drop_vars("band")})
     dpds = ds.rio.write_crs(epsg)
-    dpcats = dpolcat.xr_categorize(vv_sn, vh_sn).compute()
+    dpcats = dpolcat.xr_categorize(vv_db, vh_db).compute()
     dpcats = dpcats.rio.write_nodata(0)
     dpds["dpolcat"] = dpcats
     return dpcats, dpds
@@ -335,7 +335,7 @@ def _(dp_cmap, dpcats):
 def _():
     # Export
     # dpds["vv"].rio.to_raster("data/inverness2-vv.tif")
-    # dpcats = dpolcat.xr_categorize(vv_sn, vh_sn).compute()
+    # dpcats = dpolcat.xr_categorize(vv_db, vh_db).compute()
     # dpcats.astype(np.uint8).rio.to_raster("inverness-dpolcat.tif")
     return
 
