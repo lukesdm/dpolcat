@@ -692,17 +692,15 @@ def _():
 def _(OVERVIEW_LEVELS, gdal, layers, out_zarr_path, ui_vrt, zarr_group_path):
     mo.stop(not ui_vrt.value, "Click the button above to create .VRT files.")
 
+    import rasterio.shutil as rasterio_shutil
+
     def zarr_layer_vrt(zarr_path, layer, levels, vrt_path=None):
         """Creates .VRT containing overviews for each layer."""
         # Mostly Claude (Opus 5.5)
         zarr_path = Path(zarr_path).absolute()
         src = f'ZARR:"{zarr_path}":{zarr_group_path}/{layer}'
         vrt_path = vrt_path or f"data/{zarr_path.stem}_{layer}.vrt"
-        gdal.Translate(
-            vrt_path,
-            f"{src}/{layer}",
-            format="VRT",
-        )
+        rasterio_shutil.copy(f"{src}/{layer}", vrt_path, driver="VRT")
         tree = ET.parse(vrt_path)
         for band in tree.getroot().iter("VRTRasterBand"):
             for f in levels:
