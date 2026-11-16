@@ -12,23 +12,23 @@ There's a pre-release package on pypi with the core functionality: https://pypi.
 
 Different objects on the earth's surface scatter the microwave signals that radar satellites emit and receive, in different ways.
 
-![Scatterer types](media/scatterer-types.png)
+![Scatterer types](https://raw.githubusercontent.com/lukesdm/dpolcat/894807a00186e6bd00d00d8023d9ac2f4a92247b/media/scatterer-types.png)
 
 We bin the backscatter received in the same- (VV) and cross-polarized (VH) signals into distinct *polarimetric categories* that give a hint at what's on the ground.
 
-![Our polarimetric categories](media/categories.png)
+![Our polarimetric categories](https://raw.githubusercontent.com/lukesdm/dpolcat/894807a00186e6bd00d00d8023d9ac2f4a92247b/media/categories.png)
 
 We can then make inferences based on how these categories are distributed in an area, or change over time.
 
 
-![Demo panels, flood mapping](media/demo-panels.png)
+![Demo panels, flood mapping](https://raw.githubusercontent.com/lukesdm/dpolcat/894807a00186e6bd00d00d8023d9ac2f4a92247b/media/demo-panels.png)
 
 [*]: [Copernicus EMSR517](https://emergency.copernicus.eu/mapping/ems-product-component/EMSR517_AOI06_DEL_MONIT01_r1_RTP03/1)
 
 
 This is implemented in a Python library that performs scaling, speckle-filtering, and then categorization, using a decision-tree algorithm.
 
-![Block diagram](media/block-diagram.png)
+![Block diagram](https://raw.githubusercontent.com/lukesdm/dpolcat/894807a00186e6bd00d00d8023d9ac2f4a92247b/media/block-diagram.png)
 
 It uses the [Numba](https://numba.pydata.org/) just-in-time compiler to increase performance, and [Dask](https://www.dask.org) for parallelization.
 
@@ -45,20 +45,20 @@ Sometimes the colours resemble certain land cover types. This may not be coincid
 
 A speckle filter (per Frost et al., 1982) is provided as an optional (but recommended) pre-processing step.
 
-![Speckle filtering demonstration](media/speckle-filter-demo.png)
+![Speckle filtering demonstration](https://raw.githubusercontent.com/lukesdm/dpolcat/894807a00186e6bd00d00d8023d9ac2f4a92247b/media/speckle-filter-demo.png)
 
 ### Semantic API
 
 For modelling in a more semantic manner, i.e., using textual rather than category indices, a few helper classes have been provided. These can be accessed through `dpolcat.modelling`, and their usage is shown in the demo notebooks.
 
-![Semantic API guide](media/semantic-api.png)
+![Semantic API guide](https://raw.githubusercontent.com/lukesdm/dpolcat/894807a00186e6bd00d00d8023d9ac2f4a92247b/media/semantic-api.png)
 
 
 ### Category numbering
 
 The numbering/indices of the categories has a property with an interesting side effect: they loosely increase in order of  magnitude of the VV+VH vector they represent. This means modelling and visualization can sometimes use the category index alone as an input. For example, below is another way of visualizing the pre-and post-flood scenes from earlier.
 
-![Flood example spectral](media/demo-index.png)
+![Flood example spectral](https://raw.githubusercontent.com/lukesdm/dpolcat/894807a00186e6bd00d00d8023d9ac2f4a92247b/media/demo-index.png)
 
 
 ### Related work
@@ -136,7 +136,7 @@ A batch processing/datacube-writing demonstration.
 
 Demonstration of some simple urban change modelling and mapping.  
 
-![urban demo](media/urban-demo.png)
+![urban demo](https://raw.githubusercontent.com/lukesdm/dpolcat/894807a00186e6bd00d00d8023d9ac2f4a92247b/media/urban-demo.png)
 
 
 ### 📁 `gis`
