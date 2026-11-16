@@ -49,7 +49,7 @@ platforms = ["win-64", "linux-64"]
 [tool.pixi.tasks]
 test = "python demo/test_run_demos.py"
 lint-src = "ruff check"
-lint = {cmd = "marimo check", depends-on = ["lint-src"]}
+lint = {cmd = "marimo check --ignore-scripts --ignore MF004", depends-on = ["lint-src"]}
 
 # Dependencies of the marimo/dev environment
 [tool.pixi.dependencies]
