@@ -43,7 +43,7 @@ Sometimes the colours resemble certain land cover types. This may not be coincid
 
 ### Speckle filtering
 
-A speckle filter (per Frost et al., 1982) is provided as an optional (but recommended) pre-processing step.
+A speckle filter (per Frost et al., 1982) is provided as an optional (but recommended) pre-processing step. See `src/dpolcat/processor.py` for usage.
 
 ![Speckle filtering demonstration](https://raw.githubusercontent.com/lukesdm/dpolcat/894807a00186e6bd00d00d8023d9ac2f4a92247b/media/speckle-filter-demo.png)
 
@@ -63,14 +63,14 @@ The numbering/indices of the categories has a property with an interesting side 
 
 ### Related work
 
-This work has a number of things in common with the polarimetric decomposition and 'scattering behaviour zones' described by Cloude and Pottier, 1997. The key differences are that *dpolcat* works on dual-polarimetric, rather than fully-polarimetric acquisitions, and it doesn't consider the phase signal components. As it doesn't require a decomposition step, processing is significantly faster.
+As mentioned above, dpolcat is inspired by Dr. Andrea Baraldi's [Satellite Image Automatic Mapper™](http://siam.andreabaraldi.com/) (SIAM™), the [Sen2Cube](https://www.sen2cube.at/) project, and Luuk van der Meer's [Semantique](https://github.com/zgis/semantique). Also, this work has a number of things in common with the polarimetric decomposition and 'scattering behaviour zones' described by Cloude and Pottier, 1997. The key differences are that *dpolcat* works on dual-polarimetric, rather than fully-polarimetric acquisitions, and it doesn't consider the phase signal components. As it doesn't require a decomposition step, processing is significantly faster.
 
 For further background, see the related [master thesis](https://eplus.uni-salzburg.at/Abschlussarbeiten/content/titleinfo/11624947).
 
 
 ## Environment
 
-Launch marimo notebooks via either:
+Launch the marimo notebook environment via either:
 - Pixi - run `pixi run marimo edit` (a browser opens automatically).
 - Docker - use locally with, e.g., `docker compose up` and browse to localhost:8080. ⚠️ This opens a notebook server without authentication, make sure to be behind a properly configured firewall.
 
@@ -185,6 +185,19 @@ A simple poster about the project presented internally (based on an even older v
 ## Contributing
 
 Please discuss problems or suggestions via an issue. Pull requests are restricted to contributors only, for now.
+
+
+### Testing
+
+`pixi run test` runs the demo notebooks in headless mode, which covers a lot of the functionality.
+
+
+### Release
+
+`pixi run publish-pypi` builds a wheel from `src/*.py` and publishes it to https://pypi.org/project/dpolcat/.
+
+`pixi build conda` builds a Conda package, but this is not yet published.
+
 
 ## Credits
 
