@@ -25,6 +25,8 @@ with app.setup:
     import dpolcat.processor
     import dpolcat.utils
 
+    dpolcat.utils.download_demo_data()
+
 
 @app.cell(hide_code=True)
 def _():

@@ -41,6 +41,8 @@ with app.setup:
     hv.Store.add_style_opts(gv.Polygons, _hatch, "bokeh")
     hv.Store.add_style_opts(hv.Polygons, _hatch, "bokeh")
 
+    dpolcat.utils.download_demo_data()
+
 
 @app.cell(hide_code=True)
 def _():
