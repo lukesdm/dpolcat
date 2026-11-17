@@ -330,12 +330,14 @@ def download_demo_data(inc_graz_datacube=False):
 
     # Download the entire source zip and extract the gis folder, which contains most of the demo data.
     if not Path("gis").exists():
-        Path("gis").mkdir(exist_ok=True)
         branch = "main"  # COULDDO: detect from version
         src_remote = f"https://github.com/lukesdm/dpolcat/archive/refs/heads/{branch}.zip"
-        with open("gis/src.zip", "w") as _zip:
-            urllib.request.urlretrieve(src_remote, _zip.name)
-            zipfile.ZipFile(_zip.name).extract(f"dpolcat-{branch}/gis/", "gis")
+        zip_path = f"dpolcat-{branch}.zip"
+        urllib.request.urlretrieve(src_remote, zip_path)
+        with zipfile.ZipFile(zip_path) as z:
+            z.extractall(members=[n for n in z.namelist() if n.startswith(f"dpolcat-{branch}/gis/")])
+        Path(f"dpolcat-{branch}/gis").rename("gis")
+        Path(f"dpolcat-{branch}").rmdir()
     else:
         print("'gis' folder already exists, skipping download.")
 
