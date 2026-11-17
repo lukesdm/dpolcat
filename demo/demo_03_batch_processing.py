@@ -28,6 +28,7 @@ with app.setup:
     import dpolcat.processor
     import dpolcat.utils
 
+    # Setup for molab, no-op otherwise
     dpolcat.utils.download_demo_data()
 
 
@@ -60,7 +61,7 @@ def _():
 
 @app.cell
 def _(aoi):
-    aoi.hvplot(geo=True, tiles=True, fill_color=None)
+    aoi.hvplot(geo=True, tiles="EsriWorldTopo", fill_color=None)
 
     # Due to a version incompability bug, this plot currently shows the AoI in the wrong place.
     # SHOULDDO: update versions when fixed (see GH-14).
@@ -153,7 +154,7 @@ def _(aoi, sel_items_gdf, stac_items_gdf):
             label="Selected items",
         )
         * aoi.hvplot(
-            geo=True, tiles=True, alpha=0.5, color="blue", label="AoI"
+            geo=True, tiles="EsriWorldTopo", alpha=0.5, color="blue", label="AoI"
         )
     ).opts(tools=["wheel_zoom"])
     return

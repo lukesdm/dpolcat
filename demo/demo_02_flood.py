@@ -44,6 +44,7 @@ with app.setup:
     hv.Store.add_style_opts(gv.Polygons, _hatch, "bokeh")
     hv.Store.add_style_opts(hv.Polygons, _hatch, "bokeh")
 
+    # Setup for molab, no-op otherwise
     dpolcat.utils.download_demo_data()
 
 
@@ -460,7 +461,7 @@ def _(epsg_num, flooded_estimated, flooded_reference, flooded_thres):
     )
 
     (
-        gv.tile_sources.StamenTerrain
+        gv.tile_sources.EsriWorldTopo
         * flooded_estimated.to_crs(3857)
         .hvplot(
             fill_alpha=0.5,
@@ -502,7 +503,7 @@ def _(flooded_estimated, flooded_reference):
 @app.cell
 def _(extent, fn, fp, tp):
     (
-        gv.tile_sources.StamenTerrain
+        gv.tile_sources.EsriWorldTopo
         * gpd.GeoDataFrame({"TP": tp, "FP": fp, "FN": fn})
         .melt()
         .set_geometry("value")

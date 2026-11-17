@@ -38,6 +38,7 @@ with app.setup:
 
     hv.output(widget_location="top_left")
 
+    # Setup for molab, no-op otherwise
     dpolcat.utils.download_demo_data(inc_graz_datacube=True)
 
 
