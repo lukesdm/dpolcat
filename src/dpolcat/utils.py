@@ -6,7 +6,10 @@ app = marimo.App(width="medium")
 with app.setup:
     from collections.abc import Iterable
     from functools import partial
+    from pathlib import Path
     from typing import Literal
+    import urllib.request
+    import zipfile
 
     import geopandas as gpd
     import numpy as np
@@ -321,6 +324,33 @@ def check_gdal_version() -> bool:
     return int(major) >= 3 and int(minor) >= 13
 
 
+@app.function
+def download_demo_data(inc_graz_datacube=False):
+    """Downloads data needed for the demo notebooks. Does nothing if it already exists."""
+
+    # Download the entire source zip and extract the gis folder, which contains most of the demo data.
+    if not Path("gis").exists():
+        Path("gis").mkdir(exist_ok=True)
+        branch = "main"  # COULDDO: detect from version
+        src_remote = f"https://github.com/lukesdm/dpolcat/archive/refs/heads/{branch}.zip"
+        with open("gis/src.zip", "w") as _zip:
+            urllib.request.urlretrieve(src_remote, _zip.name)
+            zipfile.ZipFile(_zip.name).extract(f"dpolcat-{branch}/gis/", "gis")
+    else:
+        print("'gis' folder already exists, skipping download.")
+
+    if inc_graz_datacube:
+        # Download the externally hosted full Graz data cube, which is too big for source control.
+        if not Path("data/dpolcat_graz_full.zarr").exists():
+            Path("data").mkdir(exist_ok=True)
+            dpolcat_zarr_remote = "https://geodata.mcquade.dev/dpolcat/v0_2_0/dpolcat_graz_full.zarr.zip"
+            with open("data/dpolcat_graz_full.zarr.zip", "w") as _zip:
+                urllib.request.urlretrieve(dpolcat_zarr_remote, _zip.name)
+                zipfile.ZipFile(_zip.name).extractall("data")
+        else:
+            print("'data/dpolcat_graz_full.zarr' already exists, skipping download.")
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -332,6 +362,17 @@ def _(mo):
 @app.cell
 def _():
     check_gdal_version()
+    return
+
+
+@app.cell
+def _():
+    download_demo_data()
+    return
+
+
+@app.cell
+def _():
     return
 
 

@@ -35,6 +35,8 @@ with app.setup:
 
     hv.output(widget_location="top_left")
 
+    dpolcat.utils.download_demo_data(inc_graz_datacube=True)
+
 
 @app.cell(hide_code=True)
 def _():
@@ -50,29 +52,12 @@ def _():
 
 @app.cell
 def _():
-    aoi_path = Path("gis/graz/graz_4326.gpkg")
-    if aoi_path.exists():
-        aoi = gpd.read_file(aoi_path)
-    else:
-        aoi = gpd.read_file(
-            "https://github.com/lukesdm/dpolcat/raw/refs/heads/main/gis/graz/graz_4326.gpkg"
-        )
+    aoi = gpd.read_file("gis/graz/graz_4326.gpkg")
 
     dpolcat_zarr = "data/dpolcat_graz_full.zarr"
 
     sat_direction = "descending"
     sat_rel_orbit = 22
-
-    # Download the demo datacube if it doesn't already exist.
-    if not Path(dpolcat_zarr).exists():
-        import urllib.request
-        import zipfile
-
-        Path("data").mkdir(exist_ok=True)
-        dpolcat_zarr_remote = "https://geodata.mcquade.dev/dpolcat/v0_2_0/dpolcat_graz_full.zarr.zip"
-        with open("data/dpolcat_graz_full.zarr.zip", "w") as _zip:
-            urllib.request.urlretrieve(dpolcat_zarr_remote, _zip.name)
-            zipfile.ZipFile(_zip.name).extractall("data")
     return aoi, dpolcat_zarr, sat_direction, sat_rel_orbit
 
 
