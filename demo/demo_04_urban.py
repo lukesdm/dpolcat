@@ -18,7 +18,6 @@ __generated_with = "0.25.1"
 app = marimo.App(width="medium", auto_download=["html"])
 
 with app.setup:
-    from pathlib import Path
 
     import bokeh.models
     import geopandas as gpd

@@ -4,12 +4,12 @@ __generated_with = "0.25.1"
 app = marimo.App(width="medium")
 
 with app.setup:
+    import urllib.request
+    import zipfile
     from collections.abc import Iterable
     from functools import partial
     from pathlib import Path
     from typing import Literal
-    import urllib.request
-    import zipfile
 
     import geopandas as gpd
     import numpy as np
