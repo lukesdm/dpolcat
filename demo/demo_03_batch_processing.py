@@ -1,3 +1,14 @@
+# /// script
+# requires-python = ">=3.13"
+# dependencies = [
+#     "dpolcat[hv]>=0.2.0.dev6",
+#     "scipy",
+#     "hvplot",
+#     "geoviews",
+#     "bokeh<3.10",  # marimo compat. issue (see GH-14)
+# ]
+# ///
+
 import marimo
 
 __generated_with = "0.25.1"
@@ -47,7 +58,7 @@ def _(aoi):
     aoi.hvplot(geo=True, tiles=True, fill_color=None)
 
     # Due to a version incompability bug, this plot currently shows the AoI in the wrong place.
-    # TODO: update versions when fixed.
+    # SHOULDDO: update versions when fixed (see GH-14).
     return
 
 

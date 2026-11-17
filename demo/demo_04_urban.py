@@ -2,10 +2,10 @@
 # requires-python = ">=3.13"
 # dependencies = [
 #     "dpolcat[hv]>=0.2.0.dev6",
-#     "scipy>=1.18.1",
+#     "scipy",
 #     "hvplot",
 #     "geoviews",
-#     "bokeh<3.10",  # marimo compat. issue.
+#     "bokeh<3.10",  # marimo compat. issue (see GH-14)
 # ]
 # ///
 
