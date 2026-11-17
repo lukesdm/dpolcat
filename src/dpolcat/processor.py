@@ -457,9 +457,59 @@ def new_zarr_path(aoi_name):
 
 
 @app.cell
+def _():
+    import s3fs
+
+    return
+
+
+@app.cell
+def _():
+    OVERVIEW_LEVELS = [2, 4, 8, 16]
+
+    # Use this even for continuous data (better physicality and nodata handling)
+    OVERVIEW_RESAMPLING = rasterio.enums.Resampling.nearest
+
+    # A note on the Zarr structure: the way multiscales/overviews work means
+    # another level of nesting is needed whenever more than 1 variable is present
+    # Expect something like, e.g.:
+    # /{direction}_{relorbit}/dpolcat/dpolcat        (native resolution)
+    # /{direction}_{relorbit}/dpolcat/ovr_2x/dpolcat (half resolution)
+    # /{direction}_{relorbit}/dpolcat/ovr_4x/dpolcat (quarter resolution)
+    # /{direction}_{relorbit}/dpolcat/ovr_*x/dpolcat (etc)
+    # /{direction}_{relorbit}/vv_db/vv_db
+    # /{direction}_{relorbit}/vv_db/ovr_2x/vv_db
+    # etc
+
+    def build_overviews(out_zarr_path, zarr_store, zarr_group_path, layers):
+        _gdal_supported = dpolcat.utils.check_gdal_version()
+        assert _gdal_supported, (
+            "Attempting to add overviews, but the installed GDAL version does not support this."
+        )
+
+        if out_zarr_path.startswith("s3://"):
+            _gdal_root = "/vsis3/" + out_zarr_path.removeprefix("s3://")
+            _rio_env = rasterio.Env(profile_name="dpolcat_out")
+        else:
+            _gdal_root = out_zarr_path
+            _rio_env = rasterio.Env()
+
+        with _rio_env:
+            for _layer in layers:
+                with rasterio.open(
+                    f'ZARR:"{_gdal_root}":{zarr_group_path}/{_layer}/{_layer}',
+                    "r+",
+                ) as _r:
+                    _r.build_overviews(OVERVIEW_LEVELS, OVERVIEW_RESAMPLING)
+
+    return OVERVIEW_LEVELS, build_overviews
+
+
+@app.cell
 def _(
     ZARR_CHUNKS,
     add_common_metadata,
+    build_overviews,
     epsg_num,
     p_aoi_name,
     p_build_overviews,
@@ -487,6 +537,14 @@ def _(
     # categorized = categorized.rio.write_nodata(0)
 
     out_zarr_path = p_out_zarr_path or new_zarr_path(p_aoi_name)
+    if out_zarr_path.startswith("s3://"):
+        zarr_store = zarr.storage.FsspecStore.from_url(
+            out_zarr_path, storage_options={"profile": "dpolcat_out"}
+        )
+    else:
+        # Assume this maps to local DirectoryStore
+        zarr_store = out_zarr_path
+
     zarr_group_path = f"/{p_sat_direction}_{p_sat_rel_orbit}"
 
     layers = {"dpolcat": categorized}
@@ -494,7 +552,7 @@ def _(
         layers |= {"vv_db": vv_db, "vh_db": vh_db}
 
     try:
-        zarr.open_group(out_zarr_path, path=zarr_group_path, mode="r")
+        zarr.open_group(zarr_store, path=zarr_group_path, mode="r")
         _group_exists = True
     except (FileNotFoundError, zarr.errors.GroupNotFoundError):
         _group_exists = False
@@ -510,7 +568,7 @@ def _(
         add_common_metadata(da, epsg_num=epsg_num)
         .to_dataset(name=name)
         .to_zarr(
-            out_zarr_path,
+            zarr_store,
             group=f"{zarr_group_path}/{name}",
             mode="a",
             append_dim="time" if _group_exists else None,
@@ -531,37 +589,21 @@ def _(
 
     # Add overviews
     # -------------
-    OVERVIEW_LEVELS = [2, 4, 8, 16]
-
-    # Use this even for continuous data (better physicality and nodata handling)
-    OVERVIEW_RESAMPLING = rasterio.enums.Resampling.nearest
-
     if p_build_overviews:
-        _supported = dpolcat.utils.check_gdal_version()
-        assert _supported, "Attempting to add overviews, but the installed GDAL version does not support this."
-        for _layer in layers:
-            with rasterio.open(
-                f'ZARR:"{out_zarr_path}":{zarr_group_path}/{_layer}/{_layer}', "r+"
-            ) as _r:
-                _r.build_overviews(OVERVIEW_LEVELS, OVERVIEW_RESAMPLING)
+        build_overviews(out_zarr_path, zarr_store, zarr_group_path, layers)
 
-    # A note on the Zarr structure: the way multiscales/overviews work means
-    # another level of nesting is needed whenever more than 1 variable is present
-    # Expect something like, e.g.:
-    # /{direction}_{relorbit}/dpolcat/dpolcat        (native resolution)
-    # /{direction}_{relorbit}/dpolcat/ovr_2x/dpolcat (half resolution)
-    # /{direction}_{relorbit}/dpolcat/ovr_4x/dpolcat (quarter resolution)
-    # /{direction}_{relorbit}/dpolcat/ovr_*x/dpolcat (etc)
-    # /{direction}_{relorbit}/vv_db/vv_db
-    # /{direction}_{relorbit}/vv_db/ovr_2x/vv_db
-    # etc
-
-    zarr.consolidate_metadata(out_zarr_path)
+    zarr.consolidate_metadata(zarr_store)
 
     result = xarray.open_groups(
-        out_zarr_path, engine="zarr", chunks={}, decode_coords="all"
+        zarr_store, engine="zarr", chunks={}, decode_coords="all"
     )
-    return OVERVIEW_LEVELS, layers, out_zarr_path, result, zarr_group_path
+    return layers, out_zarr_path, result, zarr_group_path, zarr_store
+
+
+@app.cell
+def _(zarr_store):
+    zarr_store.fs._s3.meta.endpoint_url
+    return
 
 
 @app.cell

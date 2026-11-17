@@ -8,3 +8,4 @@ services:
     volumes:
      - .:/app
      - ./data:/data
+     - .aws:/root/.aws

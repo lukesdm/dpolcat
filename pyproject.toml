@@ -26,6 +26,7 @@ dependencies = [
                           # (and hence rioxarray). SHOULDDO: Update this when possible.
     "zarr>=3,<4",
     "scipy",
+    "s3fs",
 ]
 
 [project.optional-dependencies]
@@ -68,6 +69,7 @@ cartopy = "<0.26" # SHOULDDO: Update this when possible (see GH-14)
 bokeh = "<3.10.0" # # SHOULDDO: Update this when possible (see GH-14)
 aiohttp = ">=3.14.5,<4"
 ruff = ">=0.17.5"
+s3fs = ">=2026"
 
 [tool.pixi.feature.release.dependencies]
 python-build = "*"
