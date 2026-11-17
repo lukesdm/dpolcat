@@ -32,8 +32,8 @@ dependencies = [
 hv = [
     "holoviews",
     "hvplot",
-    "bokeh<3.10.0", # 3.10.x has a marimo incompatibility. SHOULDDO: Remove this when possible
-    "cartopy<0.26", # prevent geoviews bug/incompatibility in current release. SHOULDDO: Remove when above is resolved.
+    "bokeh<3.10.0", # SHOULDDO: Update this when possible (see GH-14)
+    "cartopy<0.26", # SHOULDDO: Update this when possible (see GH-14)
     "geoviews"
 ]
 
@@ -63,9 +63,9 @@ holoviews = ">=1.23.2,<2"
 hvplot = ">=0.12.2,<0.13"
 xhistogram = ">=0.3.2,<0.4"
 # geoviews = ">=1.15.1,<2"
-geoviews = "==1.15.0" # SHOULDDO: Update this when possible
-cartopy = "<0.26" # prevent geoviews bug/incompatibility in current conda release # SHOULDDO: Remove this when possible
-bokeh = "<3.10.0" # not currently supported by marimo # SHOULDDO: Remove this when possible
+geoviews = "==1.15.0" # SHOULDDO: Update this when possible (see GH-14)
+cartopy = "<0.26" # SHOULDDO: Update this when possible (see GH-14)
+bokeh = "<3.10.0" # # SHOULDDO: Update this when possible (see GH-14)
 aiohttp = ">=3.14.5,<4"
 ruff = ">=0.17.5"
 
