@@ -7,6 +7,9 @@
 #     "geoviews",
 #     "bokeh<3.10",  # marimo compat. issue (see GH-14)
 # ]
+# 
+# [tool.marimo.runtime]
+# output_max_bytes = 100000000
 # ///
 
 import marimo
