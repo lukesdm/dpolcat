@@ -30,6 +30,11 @@ with app.setup:
     import dpolcat.utils
     from dpolcat.pc_rio_driver import PCRioDriver
 
+    # Use this even for continuous data (better physicality and nodata handling)
+    OVERVIEW_RESAMPLING = rasterio.enums.Resampling.nearest
+
+    OVERVIEW_LEVELS = [2, 4, 8, 16]
+
 
 @app.cell
 def _():
@@ -459,12 +464,13 @@ def _():
     return (p_build_overviews,)
 
 
-@app.cell
-def _():
-    OVERVIEW_LEVELS = [2, 4, 8, 16]
-
-    # Use this even for continuous data (better physicality and nodata handling)
-    OVERVIEW_RESAMPLING = rasterio.enums.Resampling.nearest
+@app.function
+def build_overviews(out_zarr_path, zarr_group_path, layers):
+    """
+    Builds overviews/multiscales in the Zarr store. Note:
+    - This replaces existing overviews, i.e. doesn't really append.
+    - The S3 version is a bit flakey, e.g., breaks when trying to re-add to the same store in the same session.
+    """
 
     # A note on the Zarr structure: the way multiscales/overviews work means
     # another level of nesting is needed whenever more than 1 variable is present
@@ -476,49 +482,40 @@ def _():
     # /{direction}_{relorbit}/vv_db/vv_db
     # /{direction}_{relorbit}/vv_db/ovr_2x/vv_db
     # etc
+    
+    _gdal_supported = dpolcat.utils.check_gdal_version()
+    assert _gdal_supported, (
+        "Attempting to add overviews, but the installed GDAL version does not support this."
+    )
 
-    def build_overviews(out_zarr_path, zarr_group_path, layers):
-        """
-        Builds overviews/multiscales in the Zarr store. Note:
-        - This replaces existing overviews, i.e. doesn't really append.
-        - The S3 version is a bit flakey, e.g., breaks when trying to re-add to the same store in the same session.
-        """
-        _gdal_supported = dpolcat.utils.check_gdal_version()
-        assert _gdal_supported, (
-            "Attempting to add overviews, but the installed GDAL version does not support this."
+    if out_zarr_path.startswith("s3://"):
+        _gdal_root = "/vsis3/" + out_zarr_path.removeprefix("s3://")
+        _url = urlsplit(
+            boto3.Session(profile_name="dpolcat_out").client("s3").meta.endpoint_url
         )
+        _rio_env = rasterio.Env(
+            session=AWSSession(profile_name="dpolcat_out", endpoint_url=_url.netloc),
+            AWS_HTTPS="YES" if _url.scheme == "https" else "NO",
+            AWS_VIRTUAL_HOSTING=_url.netloc.endswith("amazonaws.com"),
+            CPL_VSIL_CURL_NON_CACHED=_gdal_root
+        )
+    else:
+        _gdal_root = out_zarr_path
+        _rio_env = rasterio.Env()
 
-        if out_zarr_path.startswith("s3://"):
-            _gdal_root = "/vsis3/" + out_zarr_path.removeprefix("s3://")
-            _url = urlsplit(
-                boto3.Session(profile_name="dpolcat_out").client("s3").meta.endpoint_url
-            )
-            _rio_env = rasterio.Env(
-                session=AWSSession(profile_name="dpolcat_out", endpoint_url=_url.netloc),
-                AWS_HTTPS="YES" if _url.scheme == "https" else "NO",
-                AWS_VIRTUAL_HOSTING=_url.netloc.endswith("amazonaws.com"),
-                CPL_VSIL_CURL_NON_CACHED=_gdal_root
-            )
-        else:
-            _gdal_root = out_zarr_path
-            _rio_env = rasterio.Env()
-
-        with _rio_env:
-            for _layer in layers:
-                with rasterio.open(
-                    f'ZARR:"{_gdal_root}":{zarr_group_path}/{_layer}/{_layer}',
-                    "r+",
-                ) as _r:
-                    _r.build_overviews(OVERVIEW_LEVELS, OVERVIEW_RESAMPLING)
-
-    return OVERVIEW_LEVELS, build_overviews
+    with _rio_env:
+        for _layer in layers:
+            with rasterio.open(
+                f'ZARR:"{_gdal_root}":{zarr_group_path}/{_layer}/{_layer}',
+                "r+",
+            ) as _r:
+                _r.build_overviews(OVERVIEW_LEVELS, OVERVIEW_RESAMPLING)
 
 
 @app.cell
 def _(
     ZARR_CHUNKS,
     add_common_metadata,
-    build_overviews,
     epsg_num,
     p_aoi_name,
     p_build_overviews,
@@ -598,9 +595,8 @@ def _(
 
     # Add overviews
     # -------------
-    zarr.consolidate_metadata(zarr_store)
-
     if p_build_overviews:
+        zarr.consolidate_metadata(zarr_store)
         build_overviews(out_zarr_path, zarr_group_path, layers)
 
     zarr.consolidate_metadata(zarr_store)
@@ -743,7 +739,7 @@ def _():
 
 
 @app.cell
-def _(OVERVIEW_LEVELS, layers, out_zarr_path, ui_vrt, zarr_group_path):
+def _(layers, out_zarr_path, ui_vrt, zarr_group_path):
     mo.stop(not ui_vrt.value, "Click the button above to create .VRT files.")
 
     import rasterio.shutil as rasterio_shutil
