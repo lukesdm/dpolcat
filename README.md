@@ -172,6 +172,16 @@ Builds the full-size datacube for the Graz urban change demo.
 Some things based on earlier versions, which may be useful for additional context.
 
 
+### 📁 `certs`
+
+Folder for custom TLS certificate files (*.crt). These can be installed to the pixi environment with `pixi run add-certs` (it's done automatically when building the Docker container).
+
+### 📄 `.aws/config.sample`
+
+Sample config for S3-writing support. Replace values under the `dpolcat_out` profile and save the file without the .sample suffix.
+This will be picked up automatically in the Docker environment, but has to be manually placed in '~/.aws/config' in a Pixi environment (TBC).
+
+
 #### 📄 `media/EARSeL2024-Slides.pdf`
 
 Slides presented at the 43rd EARSeL Symposium in Manchester, UK, 17-June-2024. (Based on an older version.)

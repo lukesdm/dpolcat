@@ -8,8 +8,10 @@ with app.setup:
     import xml.etree.ElementTree as ET
     from collections import defaultdict
     from pathlib import Path
+    from urllib.parse import urlsplit
 
     import bokeh.models
+    import boto3
     import dask
     import geopandas as gpd
     import marimo as mo
@@ -22,6 +24,7 @@ with app.setup:
     import xarray
     import zarr
     from dask.diagnostics import ProgressBar
+    from rasterio.session import AWSSession
 
     import dpolcat
     import dpolcat.utils
@@ -442,13 +445,6 @@ def _():
     return
 
 
-@app.cell
-def _():
-    # Whether to build Zarr overviews/multiscales. Note: This requires GDAL 3.13+.
-    p_build_overviews = True
-    return (p_build_overviews,)
-
-
 @app.function
 def new_zarr_path(aoi_name):
     timestamp = pd.Timestamp.now("UTC").strftime("%Y%m%dT%H%M%S")
@@ -458,9 +454,9 @@ def new_zarr_path(aoi_name):
 
 @app.cell
 def _():
-    import s3fs
-
-    return
+    # Whether to build Zarr overviews/multiscales. Note: This requires GDAL 3.13+.
+    p_build_overviews = True
+    return (p_build_overviews,)
 
 
 @app.cell
@@ -481,7 +477,12 @@ def _():
     # /{direction}_{relorbit}/vv_db/ovr_2x/vv_db
     # etc
 
-    def build_overviews(out_zarr_path, zarr_store, zarr_group_path, layers):
+    def build_overviews(out_zarr_path, zarr_group_path, layers):
+        """
+        Builds overviews/multiscales in the Zarr store. Note:
+        - This replaces existing overviews, i.e. doesn't really append.
+        - The S3 version is a bit flakey, e.g., breaks when trying to re-add to the same store in the same session.
+        """
         _gdal_supported = dpolcat.utils.check_gdal_version()
         assert _gdal_supported, (
             "Attempting to add overviews, but the installed GDAL version does not support this."
@@ -489,7 +490,15 @@ def _():
 
         if out_zarr_path.startswith("s3://"):
             _gdal_root = "/vsis3/" + out_zarr_path.removeprefix("s3://")
-            _rio_env = rasterio.Env(profile_name="dpolcat_out")
+            _url = urlsplit(
+                boto3.Session(profile_name="dpolcat_out").client("s3").meta.endpoint_url
+            )
+            _rio_env = rasterio.Env(
+                session=AWSSession(profile_name="dpolcat_out", endpoint_url=_url.netloc),
+                AWS_HTTPS="YES" if _url.scheme == "https" else "NO",
+                AWS_VIRTUAL_HOSTING=_url.netloc.endswith("amazonaws.com"),
+                CPL_VSIL_CURL_NON_CACHED=_gdal_root
+            )
         else:
             _gdal_root = out_zarr_path
             _rio_env = rasterio.Env()
@@ -589,21 +598,17 @@ def _(
 
     # Add overviews
     # -------------
+    zarr.consolidate_metadata(zarr_store)
+
     if p_build_overviews:
-        build_overviews(out_zarr_path, zarr_store, zarr_group_path, layers)
+        build_overviews(out_zarr_path, zarr_group_path, layers)
 
     zarr.consolidate_metadata(zarr_store)
 
     result = xarray.open_groups(
         zarr_store, engine="zarr", chunks={}, decode_coords="all"
     )
-    return layers, out_zarr_path, result, zarr_group_path, zarr_store
-
-
-@app.cell
-def _(zarr_store):
-    zarr_store.fs._s3.meta.endpoint_url
-    return
+    return layers, out_zarr_path, result, zarr_group_path
 
 
 @app.cell

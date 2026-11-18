@@ -9,6 +9,11 @@ COPY pyproject.toml pixi.lock* README.md LICENSE ./
 COPY src/dpolcat/__init__.py ./src/dpolcat/__init__.py
 RUN pixi install
 
+# Copy custom certificates
+COPY certs certs
+COPY scripts scripts
+RUN pixi run add-certs
+
 # No need to copy anything else - it will be volume mounted.
 # COPY . .
 
