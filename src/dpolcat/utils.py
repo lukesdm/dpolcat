@@ -18,6 +18,7 @@ with app.setup:
     import pystac_client
     import rasterio
     import rioxarray
+    import shapely
     import xarray
 
     import dpolcat.core as dpolcat
@@ -124,6 +125,15 @@ def calc_coverages(
     utm_crs = items_gdf.estimate_utm_crs()
     items_gdf = items_gdf.to_crs(utm_crs)
     aoi = aoi.to_crs(utm_crs)
+
+    # Fix invalid footprint geometry post-reprojection (was breaking dissolve sometimes)
+    items_gdf.geometry = gpd.GeoSeries(
+        shapely.make_valid(
+            items_gdf.geometry.values, method="structure", keep_collapsed=False
+        ),
+        index=items_gdf.index,
+        crs=utm_crs,
+    )
 
     intersection = items_gdf.dissolve(
         by=["sat:orbit_state", "sat:relative_orbit", "s1:datatake_id"]
