@@ -1,4 +1,4 @@
-# Add custom TLS client certificates to the pixi/docker environment
+# Add custom TLS certificates to the pixi/docker environment
 
 from pathlib import Path
 
