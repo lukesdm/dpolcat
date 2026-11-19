@@ -28,10 +28,11 @@ with app.setup:
 
     import dpolcat
     import dpolcat.utils
+    import dpolcat.overviews
     from dpolcat.pc_rio_driver import PCRioDriver
 
     # Use this even for continuous data (better physicality and nodata handling)
-    OVERVIEW_RESAMPLING = rasterio.enums.Resampling.nearest
+    OVERVIEW_RESAMPLING = "nearest"
 
     OVERVIEW_LEVELS = [2, 4, 8, 16]
 
@@ -597,7 +598,14 @@ def _(
     # -------------
     if p_build_overviews:
         zarr.consolidate_metadata(zarr_store)
-        build_overviews(out_zarr_path, zarr_group_path, layers)
+        for _layer in layers:
+            dpolcat.overviews.build_overviews(
+                store=zarr_store,
+                group=zarr_group_path,
+                name=_layer,
+                factors=OVERVIEW_LEVELS,
+                resampling=OVERVIEW_RESAMPLING,
+            )
 
     zarr.consolidate_metadata(zarr_store)
 
