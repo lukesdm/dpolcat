@@ -1,5 +1,6 @@
-# An implementation of GeoZarr multiscale/overview-building which supports
-# appending to existing stores (which GDAL's doesn't yet). Nearest-neighbour only.
+# An implementation of GeoZarr nearest-neighbour multiscale/overview-building,
+# based on GDAL's, which supports appending to existing stores
+# (which GDAL's doesn't yet).
 #
 # Claude Opus 5.5
 
@@ -56,7 +57,8 @@ def build_overviews(store, group, name, factors=(2, 4, 8, 16), resampling="neare
                 name: _inherit(da.encoding)
                 | {
                     "chunks": tuple(
-                        min(c, s) for c, s in zip(root[name].chunks, ovr.shape)
+                        min(c, s)
+                        for c, s in zip(root[name].chunks, ovr.shape, strict=True)
                     )
                 },
                 "time": _inherit(base.time.encoding),
@@ -148,7 +150,7 @@ def _steps_done(root, name, levels):
             arr, t = root[f"{asset}/{name}"], root[f"{asset}/time"][:]
             spatial = {
                 d: s
-                for d, s in zip(arr.metadata.dimension_names, arr.shape)
+                for d, s in zip(arr.metadata.dimension_names, arr.shape, strict=True)
                 if d != "time"
             }
             if (

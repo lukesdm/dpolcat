@@ -8,27 +8,23 @@ with app.setup:
     import xml.etree.ElementTree as ET
     from collections import defaultdict
     from pathlib import Path
-    from urllib.parse import urlsplit
 
     import bokeh.models
-    import boto3
     import dask
     import geopandas as gpd
     import marimo as mo
     import numpy as np
     import odc.stac
     import pandas as pd
-    import rasterio
     import rioxarray
     import shapely.geometry as sg
     import xarray
     import zarr
     from dask.diagnostics import ProgressBar
-    from rasterio.session import AWSSession
 
     import dpolcat
     import dpolcat.utils
-    import dpolcat.overviews
+    from dpolcat.overviews import build_overviews
     from dpolcat.pc_rio_driver import PCRioDriver
 
     # Use this even for continuous data (better physicality and nodata handling)
@@ -460,57 +456,9 @@ def new_zarr_path(aoi_name):
 
 @app.cell
 def _():
-    # Whether to build Zarr overviews/multiscales. Note: This requires GDAL 3.13+.
+    # Whether to build Zarr overviews/multiscales.
     p_build_overviews = True
     return (p_build_overviews,)
-
-
-@app.function
-def build_overviews(out_zarr_path, zarr_group_path, layers):
-    """
-    Builds overviews/multiscales in the Zarr store. Note:
-    - This replaces existing overviews, i.e. doesn't really append.
-    - The S3 version is a bit flakey, e.g., breaks when trying to re-add to the same store in the same session.
-    """
-
-    # A note on the Zarr structure: the way multiscales/overviews work means
-    # another level of nesting is needed whenever more than 1 variable is present
-    # Expect something like, e.g.:
-    # /{direction}_{relorbit}/dpolcat/dpolcat        (native resolution)
-    # /{direction}_{relorbit}/dpolcat/ovr_2x/dpolcat (half resolution)
-    # /{direction}_{relorbit}/dpolcat/ovr_4x/dpolcat (quarter resolution)
-    # /{direction}_{relorbit}/dpolcat/ovr_*x/dpolcat (etc)
-    # /{direction}_{relorbit}/vv_db/vv_db
-    # /{direction}_{relorbit}/vv_db/ovr_2x/vv_db
-    # etc
-    
-    _gdal_supported = dpolcat.utils.check_gdal_version()
-    assert _gdal_supported, (
-        "Attempting to add overviews, but the installed GDAL version does not support this."
-    )
-
-    if out_zarr_path.startswith("s3://"):
-        _gdal_root = "/vsis3/" + out_zarr_path.removeprefix("s3://")
-        _url = urlsplit(
-            boto3.Session(profile_name="dpolcat_out").client("s3").meta.endpoint_url
-        )
-        _rio_env = rasterio.Env(
-            session=AWSSession(profile_name="dpolcat_out", endpoint_url=_url.netloc),
-            AWS_HTTPS="YES" if _url.scheme == "https" else "NO",
-            AWS_VIRTUAL_HOSTING=_url.netloc.endswith("amazonaws.com"),
-            CPL_VSIL_CURL_NON_CACHED=_gdal_root
-        )
-    else:
-        _gdal_root = out_zarr_path
-        _rio_env = rasterio.Env()
-
-    with _rio_env:
-        for _layer in layers:
-            with rasterio.open(
-                f'ZARR:"{_gdal_root}":{zarr_group_path}/{_layer}/{_layer}',
-                "r+",
-            ) as _r:
-                _r.build_overviews(OVERVIEW_LEVELS, OVERVIEW_RESAMPLING)
 
 
 @app.cell
@@ -599,7 +547,7 @@ def _(
     if p_build_overviews:
         zarr.consolidate_metadata(zarr_store)
         for _layer in layers:
-            dpolcat.overviews.build_overviews(
+            build_overviews(
                 store=zarr_store,
                 group=zarr_group_path,
                 name=_layer,
