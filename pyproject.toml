@@ -1,6 +1,6 @@
 [project]
 name = "dpolcat"
-version = "0.2.0.dev8"
+version = "0.2.0.dev9"
 authors = [{ name = "Luke McQuade", email = "2824165+lukesdm@users.noreply.github.com" }]
 description = "Semantic categorization of dual-polarimetric synthetic aperture radar (SAR) imagery."
 readme="README.md"
@@ -22,10 +22,11 @@ dependencies = [
     "pystac-client>=0.9.0",
     "numba",
     "odc-stac>=0.5.3",
-    "rioxarray>=0.23.0",  # GDAL 3.13+ is essential for zarr overviews, but isn't supported by rasterio yet (see https://github.com/rasterio/rasterio/issues/3657)
-                          # (and hence rioxarray). SHOULDDO: Update this when possible.
+    "rioxarray>=0.23.0",  # Might be able to relax this if needed.
     "zarr>=3,<4",
     "scipy",
+    "s3fs",
+    "boto3",
 ]
 
 [project.optional-dependencies]
@@ -55,6 +56,7 @@ platforms = ["win-64", "linux-64"]
 test = "python demo/test_run_demos.py"
 lint-src = "ruff check"
 lint = {cmd = "marimo check --ignore-scripts --ignore MF004", depends-on = ["lint-src"]}
+add-certs = "python scripts/add_custom_certs.py"
 
 # Dependencies of the marimo/dev environment
 [tool.pixi.dependencies]
@@ -103,6 +105,8 @@ numba = ">=0.68.0"
 odc-stac = ">=0.5.3"
 rioxarray = ">=0.23.0"
 gdal = ">=3.13.3"
+s3fs = ">=2026"
+boto3 = ">=1.43.117,<2"
 
 [tool.marimo.package_management]
 manager = "pixi"

@@ -16,7 +16,6 @@ with app.setup:
     import numpy as np
     import odc.stac
     import pandas as pd
-    import rasterio
     import rioxarray
     import shapely.geometry as sg
     import xarray
@@ -25,7 +24,13 @@ with app.setup:
 
     import dpolcat
     import dpolcat.utils
+    from dpolcat.overviews import build_overviews
     from dpolcat.pc_rio_driver import PCRioDriver
+
+    # Use this even for continuous data (better physicality and nodata handling)
+    OVERVIEW_RESAMPLING = "nearest"
+
+    OVERVIEW_LEVELS = [2, 4, 8, 16]
 
 
 @app.cell
@@ -442,18 +447,18 @@ def _():
     return
 
 
-@app.cell
-def _():
-    # Whether to build Zarr overviews/multiscales. Note: This requires GDAL 3.13+.
-    p_build_overviews = True
-    return (p_build_overviews,)
-
-
 @app.function
 def new_zarr_path(aoi_name):
     timestamp = pd.Timestamp.now("UTC").strftime("%Y%m%dT%H%M%S")
     path = f"data/dpolcat-{aoi_name}_{timestamp}.zarr"
     return path
+
+
+@app.cell
+def _():
+    # Whether to build Zarr overviews/multiscales.
+    p_build_overviews = True
+    return (p_build_overviews,)
 
 
 @app.cell
@@ -487,6 +492,14 @@ def _(
     # categorized = categorized.rio.write_nodata(0)
 
     out_zarr_path = p_out_zarr_path or new_zarr_path(p_aoi_name)
+    if out_zarr_path.startswith("s3://"):
+        zarr_store = zarr.storage.FsspecStore.from_url(
+            out_zarr_path, storage_options={"profile": "dpolcat_out"}
+        )
+    else:
+        # Assume this maps to local DirectoryStore
+        zarr_store = out_zarr_path
+
     zarr_group_path = f"/{p_sat_direction}_{p_sat_rel_orbit}"
 
     layers = {"dpolcat": categorized}
@@ -494,7 +507,7 @@ def _(
         layers |= {"vv_db": vv_db, "vh_db": vh_db}
 
     try:
-        zarr.open_group(out_zarr_path, path=zarr_group_path, mode="r")
+        zarr.open_group(zarr_store, path=zarr_group_path, mode="r")
         _group_exists = True
     except (FileNotFoundError, zarr.errors.GroupNotFoundError):
         _group_exists = False
@@ -510,7 +523,7 @@ def _(
         add_common_metadata(da, epsg_num=epsg_num)
         .to_dataset(name=name)
         .to_zarr(
-            out_zarr_path,
+            zarr_store,
             group=f"{zarr_group_path}/{name}",
             mode="a",
             append_dim="time" if _group_exists else None,
@@ -531,37 +544,23 @@ def _(
 
     # Add overviews
     # -------------
-    OVERVIEW_LEVELS = [2, 4, 8, 16]
-
-    # Use this even for continuous data (better physicality and nodata handling)
-    OVERVIEW_RESAMPLING = rasterio.enums.Resampling.nearest
-
     if p_build_overviews:
-        _supported = dpolcat.utils.check_gdal_version()
-        assert _supported, "Attempting to add overviews, but the installed GDAL version does not support this."
+        zarr.consolidate_metadata(zarr_store)
         for _layer in layers:
-            with rasterio.open(
-                f'ZARR:"{out_zarr_path}":{zarr_group_path}/{_layer}/{_layer}', "r+"
-            ) as _r:
-                _r.build_overviews(OVERVIEW_LEVELS, OVERVIEW_RESAMPLING)
+            build_overviews(
+                store=zarr_store,
+                group=zarr_group_path,
+                name=_layer,
+                factors=OVERVIEW_LEVELS,
+                resampling=OVERVIEW_RESAMPLING,
+            )
 
-    # A note on the Zarr structure: the way multiscales/overviews work means
-    # another level of nesting is needed whenever more than 1 variable is present
-    # Expect something like, e.g.:
-    # /{direction}_{relorbit}/dpolcat/dpolcat        (native resolution)
-    # /{direction}_{relorbit}/dpolcat/ovr_2x/dpolcat (half resolution)
-    # /{direction}_{relorbit}/dpolcat/ovr_4x/dpolcat (quarter resolution)
-    # /{direction}_{relorbit}/dpolcat/ovr_*x/dpolcat (etc)
-    # /{direction}_{relorbit}/vv_db/vv_db
-    # /{direction}_{relorbit}/vv_db/ovr_2x/vv_db
-    # etc
-
-    zarr.consolidate_metadata(out_zarr_path)
+    zarr.consolidate_metadata(zarr_store)
 
     result = xarray.open_groups(
-        out_zarr_path, engine="zarr", chunks={}, decode_coords="all"
+        zarr_store, engine="zarr", chunks={}, decode_coords="all"
     )
-    return OVERVIEW_LEVELS, layers, out_zarr_path, result, zarr_group_path
+    return layers, out_zarr_path, result, zarr_group_path
 
 
 @app.cell
@@ -696,7 +695,7 @@ def _():
 
 
 @app.cell
-def _(OVERVIEW_LEVELS, layers, out_zarr_path, ui_vrt, zarr_group_path):
+def _(layers, out_zarr_path, ui_vrt, zarr_group_path):
     mo.stop(not ui_vrt.value, "Click the button above to create .VRT files.")
 
     import rasterio.shutil as rasterio_shutil

@@ -9,5 +9,11 @@ __pycache__
 # Build
 dist/
 
+# Settings/creds
+.aws/config
+
 # Editor stuff
 .vscode/settings.json
+
+# wip
+drain
