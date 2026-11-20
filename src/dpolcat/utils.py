@@ -331,6 +331,8 @@ def check_gdal_version() -> bool:
     major, minor = rasterio.__gdal_version__.split(".")[:2]
     
     # GDAL 3.13 is the minimum version supporting Zarr overview/multiscale-writing
+    # UPDATE: GDAL is no longer used for overviews, but it is used for other zarr-related
+    # features e.g., VRT generation, which may need a certain version
     return int(major) >= 3 and int(minor) >= 13
 
 

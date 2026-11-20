@@ -22,8 +22,7 @@ dependencies = [
     "pystac-client>=0.9.0",
     "numba",
     "odc-stac>=0.5.3",
-    "rioxarray>=0.23.0",  # GDAL 3.13+ is essential for zarr overviews, but isn't supported by rasterio yet (see https://github.com/rasterio/rasterio/issues/3657)
-                          # (and hence rioxarray). SHOULDDO: Update this when possible.
+    "rioxarray>=0.23.0",  # Might be able to relax this if needed.
     "zarr>=3,<4",
     "scipy",
     "s3fs",
