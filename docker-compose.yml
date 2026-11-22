@@ -4,8 +4,8 @@ services:
   marimo-notebook:
     build: .
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     volumes:
      - .:/app
      - ./data:/data
-     - .aws:/root/.aws
+     - .aws:/home/ubuntu/.aws

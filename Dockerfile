@@ -1,5 +1,8 @@
 FROM ghcr.io/prefix-dev/pixi:0.84.1-noble
 
+RUN mkdir /app && chown ubuntu:ubuntu /app
+USER ubuntu
+
 # Prevent environment (dependencies) folder being created in app folder, which kills perf on WSL.
 RUN pixi config set --global detached-environments true
 
@@ -20,4 +23,5 @@ RUN pixi run add-certs
 ENV MARIMO_SKIP_UPDATE_CHECK=1
 
 EXPOSE 8080
+
 CMD ["pixi", "run", "marimo", "edit", "--host", "0.0.0.0", "--port", "8080", "--no-token"]
