@@ -1,3 +1,7 @@
+[![Powered by Pixi](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/prefix-dev/pixi/main/assets/badge/v0.json)](https://pixi.sh)
+[![CI](https://github.com/lukesdm/dpolcat/actions/workflows/test-package.yml/badge.svg)](https://github.com/lukesdm/dpolcat/actions/workflows/test-package.yml)
+[![Available on pypi](https://img.shields.io/pypi/v/dpolcat.svg)](https://pypi.python.org/pypi/dpolcat/)
+
 # dpolcat
 
 *dpolcat* is a tool for the semantic categorization of dual-polarimetric synthetic aperture radar (SAR) imagery. (Specifically, Sentinel-1 with VV and VH polarizations at present.)
@@ -6,7 +10,7 @@ It is inspired by Dr. Andrea Baraldi's [Satellite Image Automatic Mapper™](htt
 
 Status: This is a research project with occasional updates.
 
-There's a pre-release package on pypi with the core functionality: https://pypi.org/project/dpolcat/
+There's a package on PyPi with the core functionality: https://pypi.org/project/dpolcat/.
 
 ## Overview
 
